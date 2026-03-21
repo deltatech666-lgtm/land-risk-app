@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者ログイン | 土地造成リスク診断</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+      background: linear-gradient(135deg, #1A237E 0%, #283593 100%);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 12px 48px rgba(0,0,0,.25);
+      padding: 48px 40px; width: 100%; max-width: 400px;
+    }
+    .logo {
+      text-align: center; margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 60px; height: 60px; border-radius: 12px;
+      background: #1A237E; display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 12px;
+    }
+    .logo h1 { font-size: 18px; font-weight: 700; color: #1A237E; }
+    .logo p  { font-size: 13px; color: #888; margin-top: 4px; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #555;
+            margin-bottom: 6px; }
+    input[type=password] {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid #E0E0E0; border-radius: 8px;
+      font-size: 16px; transition: border .2s, box-shadow .2s;
+    }
+    input[type=password]:focus {
+      outline: none; border-color: #1A237E;
+      box-shadow: 0 0 0 3px rgba(26,35,126,.12);
+    }
+    .btn {
+      width: 100%; padding: 14px;
+      background: #1A237E; color: #fff;
+      font-size: 15px; font-weight: 700;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: background .2s;
+    }
+    .btn:hover { background: #283593; }
+    .alert-error {
+      background: #FFEBEE; border: 1px solid #EF9A9A;
+      color: #B71C1C; border-radius: 8px;
+      padding: 11px 14px; font-size: 13px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .back-link {
+      display: block; text-align: center; margin-top: 20px;
+      font-size: 13px; color: #888; text-decoration: none;
+    }
+    .back-link:hover { color: #1A237E; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🔑</div>
+      <h1>管理者ログイン</h1>
+      <p>土地造成リスク診断サービス</p>
+    </div>
+
+    {% if error %}
+    <div class="alert-error">
+      <span>⚠️</span><span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/admin/login">
+      <div class="form-group">
+        <label for="password">管理者パスワード</label>
+        <input type="password" id="password" name="password"
+               placeholder="パスワードを入力" autofocus required>
+      </div>
+      <button type="submit" class="btn">ログイン</button>
+    </form>
+
+    <a href="/" class="back-link">← トップページへ戻る</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>土地造成リスク診断サービス</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #1A237E;
+      --primary-l: #283593;
+      --accent:    #1565C0;
+      --green:     #2E7D32;
+      --red:       #C62828;
+      --bg:        #F4F6FB;
+      --card:      #FFFFFF;
+      --border:    #E0E0E0;
+      --text:      #212121;
+      --muted:     #757575;
+      --radius:    10px;
+      --shadow:    0 4px 24px rgba(0,0,0,.10);
+    }
+    body { font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+           background: var(--bg); color: var(--text); line-height: 1.7; }
+
+    /* ── ヘッダー ── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 0 24px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .brand { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+    .brand span { font-size: 11px; font-weight: 400; margin-left: 10px;
+                  opacity: .8; display: inline-block; }
+    .header-price {
+      background: #FFF176; color: #212121;
+      font-size: 13px; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px;
+    }
+
+    /* ── ヒーロー ── */
+    .hero {
+      background: linear-gradient(135deg, var(--primary) 0%, #1976D2 100%);
+      color: #fff; text-align: center; padding: 52px 24px 48px;
+    }
+    .hero h1 { font-size: clamp(22px, 4vw, 34px); font-weight: 700;
+               line-height: 1.4; margin-bottom: 12px; }
+    .hero p  { font-size: 15px; opacity: .9; max-width: 560px; margin: 0 auto 28px; }
+    .hero-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35);
+      color: #fff; font-size: 13px; padding: 5px 14px; border-radius: 20px;
+    }
+
+    /* ── フロー ── */
+    .flow { background: #fff; border-bottom: 1px solid var(--border); }
+    .flow-inner {
+      max-width: 960px; margin: 0 auto; padding: 28px 24px;
+      display: flex; gap: 0; align-items: stretch;
+    }
+    .flow-step {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      text-align: center; padding: 0 16px; position: relative;
+    }
+    .flow-step:not(:last-child)::after {
+      content: "→"; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+      font-size: 22px; color: #BDBDBD;
+    }
+    .flow-num {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; margin-bottom: 8px;
+    }
+    .flow-step h3 { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .flow-step p  { font-size: 12px; color: var(--muted); }
+
+    /* ── メインレイアウト ── */
+    .main { max-width: 960px; margin: 36px auto 60px; padding: 0 20px;
+            display: grid; grid-template-columns: 1fr 340px; gap: 28px; }
+    @media(max-width:760px){ .main { grid-template-columns: 1fr; } }
+
+    /* ── フォームカード ── */
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 32px;
+    }
+    .card-title { font-size: 18px; font-weight: 700; color: var(--primary);
+                  margin-bottom: 24px; padding-bottom: 12px;
+                  border-bottom: 2px solid var(--primary); }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #333; }
+    label .req { color: #E53935; font-size: 12px; margin-left: 4px; }
+    input[type=text], input[type=email], select, textarea {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 15px; font-family: inherit; color: var(--text);
+      transition: border .2s, box-shadow .2s;
+      background: #FAFAFA;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(21,101,192,.12);
+      background: #fff;
+    }
+    .addr-row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; }
+    @media(max-width:500px){ .addr-row { grid-template-columns: 1fr; } }
+    .form-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── 利用用途ラジオ ── */
+    .radio-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .radio-label {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      cursor: pointer; transition: all .2s; font-size: 14px;
+    }
+    .radio-label:hover { border-color: var(--accent); background: #EEF2FF; }
+    .radio-label input[type=radio] { accent-color: var(--primary); width: 16px; height: 16px; }
+    .radio-label.selected { border-color: var(--primary); background: #E8EAF6; font-weight: 600; }
+
+    /* ── 決済ボタン ── */
+    #submitBtn {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #1B5E20, #2E7D32);
+      color: #fff; font-size: 17px; font-weight: 700;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 4px 12px rgba(46,125,50,.35);
+    }
+    #submitBtn:hover:not(:disabled) { transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(46,125,50,.4); }
+    #submitBtn:disabled { background: #B0BEC5; cursor: not-allowed;
+      transform: none; box-shadow: none; }
+    .btn-icon { font-size: 20px; }
+
+    /* ── サイドバー ── */
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+    .info-card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 22px;
+    }
+    .info-card h3 { font-size: 14px; font-weight: 700; color: var(--primary);
+                    margin-bottom: 14px; padding-bottom: 8px;
+                    border-bottom: 1px solid var(--border); }
+    .price-box {
+      text-align: center; padding: 20px;
+      background: linear-gradient(135deg, #E8F5E9, #F1F8E9);
+      border: 2px solid #A5D6A7; border-radius: var(--radius);
+    }
+    .price-amount { font-size: 36px; font-weight: 700; color: var(--green); }
+    .price-tax    { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .price-label  { font-size: 13px; font-weight: 600; color: #2E7D32; margin-top: 6px; }
+    .feature-list { list-style: none; }
+    .feature-list li {
+      padding: 8px 0; border-bottom: 1px solid #F0F0F0;
+      font-size: 13px; display: flex; align-items: flex-start; gap: 8px;
+    }
+    .feature-list li:last-child { border-bottom: none; }
+    .feature-list .ck { color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .security-note {
+      background: #FFF8E1; border: 1px solid #FFE082;
+      border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #5D4037;
+    }
+    .security-note strong { display: block; margin-bottom: 4px; color: #E65100; }
+
+    /* ── アラート ── */
+    .alert {
+      padding: 13px 16px; border-radius: 8px; margin-bottom: 20px;
+      font-size: 14px; display: flex; align-items: flex-start; gap: 10px;
+    }
+    .alert-error { background: #FFEBEE; border: 1px solid #EF9A9A; color: #B71C1C; }
+    .alert-info  { background: #E3F2FD; border: 1px solid #90CAF9; color: #0D47A1; }
+    .alert-icon  { font-size: 18px; flex-shrink: 0; }
+
+    /* ── ローディング ── */
+    .spinner {
+      width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── フッター ── */
+    footer {
+      background: var(--primary); color: rgba(255,255,255,.75);
+      text-align: center; padding: 20px; font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      土地造成リスク診断サービス
+      <span>AI×公開データで土地リスクを可視化</span>
+    </div>
+    <div class="header-price">¥30,000 / 1レポート</div>
+  </div>
+</header>
+
+<!-- ヒーロー -->
+<div class="hero">
+  <h1>土地を買う前に、リスクを知る。<br>プロの視点で造成コストを見える化。</h1>
+  <p>住所を入力するだけで、地形・地盤・災害・法規制・造成費用を総合評価した<br>
+     A4・8ページの詳細PDFレポートをお届けします。</p>
+  <div class="hero-badges">
+    <span class="badge">🏔 地形・標高分析</span>
+    <span class="badge">🌊 ハザードマップ連携</span>
+    <span class="badge">🏗 造成費概算</span>
+    <span class="badge">📄 PDFレポート</span>
+  </div>
+</div>
+
+<!-- サービスフロー -->
+<div class="flow">
+  <div class="flow-inner">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <h3>フォーム入力</h3>
+      <p>住所・用途を<br>入力</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <h3>オンライン決済</h3>
+      <p>Stripeで<br>安全に決済</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <h3>データ解析</h3>
+      <p>地形・地盤・<br>災害を自動取得</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <h3>PDFレポート</h3>
+      <p>メールで<br>お届け</p>
+    </div>
+  </div>
+</div>
+
+<!-- メインコンテンツ -->
+<div class="main">
+
+  <!-- 左：フォーム -->
+  <div>
+    <div class="card">
+      <div class="card-title">📋 診断お申込みフォーム</div>
+
+      {% if error %}
+      <div class="alert alert-error">
+        <span class="alert-icon">⚠️</span>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      {% if message %}
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ️</span>
+        <span>{{ message }}</span>
+      </div>
+      {% endif %}
+
+      <div id="formAlert" class="alert alert-error" style="display:none;">
+        <span class="alert-icon">⚠️</span>
+        <span id="formAlertMsg"></span>
+      </div>
+
+      <form id="orderForm" novalidate>
+
+        <!-- 依頼者名 -->
+        <div class="form-group">
+          <label for="name">依頼者名 <span class="req">※必須</span></label>
+          <input type="text" id="name" placeholder="例：山田 太郎" autocomplete="name">
+        </div>
+
+        <!-- メール -->
+        <div class="form-group">
+          <label for="email">メールアドレス <span class="req">※必須</span></label>
+          <input type="email" id="email" placeholder="例：yamada@example.com" autocomplete="email">
+          <p class="form-hint">レポートはこちらのアドレスへ送付します</p>
+        </div>
+
+        <!-- 住所 -->
+        <div class="form-group">
+          <label>土地の住所 <span class="req">※必須</span></label>
+          <div class="addr-row">
+            <select id="prefecture">
+              <option value="">都道府県を選択</option>
+              <option>北海道</option><option>青森県</option><option>岩手県</option>
+              <option>宮城県</option><option>秋田県</option><option>山形県</option>
+              <option>福島県</option><option>茨城県</option><option>栃木県</option>
+              <option>群馬県</option><option>埼玉県</option><option>千葉県</option>
+              <option>東京都</option><option>神奈川県</option><option>新潟県</option>
+              <option>富山県</option><option>石川県</option><option>福井県</option>
+              <option>山梨県</option><option>長野県</option><option>岐阜県</option>
+              <option>静岡県</option><option>愛知県</option><option>三重県</option>
+              <option>滋賀県</option><option>京都府</option><option>大阪府</option>
+              <option>兵庫県</option><option>奈良県</option><option>和歌山県</option>
+              <option>鳥取県</option><option>島根県</option><option>岡山県</option>
+              <option>広島県</option><option>山口県</option><option>徳島県</option>
+              <option>香川県</option><option>愛媛県</option><option>高知県</option>
+              <option>福岡県</option><option>佐賀県</option><option>長崎県</option>
+              <option>熊本県</option><option>大分県</option><option>宮崎県</option>
+              <option>鹿児島県</option><option>沖縄県</option>
+            </select>
+            <input type="text" id="cityAddr" placeholder="市区町村・番地（例：大阪市北区梅田1-2-3）">
+          </div>
+          <p class="form-hint">可能な限り詳細な住所（番地まで）を入力すると精度が上がります</p>
+        </div>
+
+        <!-- 利用用途 -->
+        <div class="form-group">
+          <label>利用用途 <span class="req">※必須</span></label>
+          <div class="radio-group" id="landUseGroup">
+            <label class="radio-label" onclick="selectUse(this)">
+              <input type="radio" name="land_use" value="住宅"> 🏠 住宅
+            </label>
+            <label class="radio-label" onclick="selectUse(this)">
+              <input type="radio" name="land_use" value="商業"> 🏢 商業施設
+            </label>
+            <label class="radio-label" onclick="selectUse(this)">
+              <input type="radio" name="land_use" value="太陽光"> ☀️ 太陽光発電
+            </label>
+            <label class="radio-label" onclick="selectUse(this)">
+              <input type="radio" name="land_use" value="その他"> 📋 その他
+            </label>
+          </div>
+        </div>
+
+        <!-- 区切り -->
+        <hr style="border:none; border-top:1px solid var(--border); margin:24px 0;">
+
+        <!-- 金額確認 -->
+        <div style="background:#F8F9FF; border:1.5px solid #C5CAE9; border-radius:8px;
+                    padding:16px; margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:14px; font-weight:700; color:var(--primary);">
+                土地造成リスク診断レポート
+              </div>
+              <div style="font-size:12px; color:var(--muted); margin-top:2px;">
+                A4・8ページ PDF / メール納品
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:24px; font-weight:700; color:var(--green);">¥30,000</div>
+              <div style="font-size:11px; color:var(--muted);">税込</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 決済ボタン -->
+        <button type="submit" id="submitBtn">
+          <div class="spinner" id="spinner"></div>
+          <span class="btn-icon" id="btnIcon">🔒</span>
+          <span id="btnText">決済に進む（¥30,000）</span>
+        </button>
+
+        <p style="text-align:center; font-size:11px; color:var(--muted); margin-top:10px;">
+          Stripe社の安全な決済ページへ移動します。カード情報は当サービスに送信されません。
+        </p>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- 右：サイドバー -->
+  <div class="sidebar">
+
+    <!-- 料金 -->
+    <div class="info-card">
+      <div class="price-box">
+        <div style="font-size:13px; color:var(--muted); margin-bottom:4px;">診断レポート料金</div>
+        <div class="price-amount">¥30,000</div>
+        <div class="price-tax">（税込）</div>
+        <div class="price-label">📄 PDFレポート メール納品</div>
+      </div>
+    </div>
+
+    <!-- レポート内容 -->
+    <div class="info-card">
+      <h3>📑 レポート収録内容（8ページ）</h3>
+      <ul class="feature-list">
+        <li><span class="ck">✓</span><span>表紙・総合評価ランク（A〜D）</span></li>
+        <li><span class="ck">✓</span><span>地形・標高差の分析</span></li>
+        <li><span class="ck">✓</span><span>地盤リスク（J-SHIS連携）</span></li>
+        <li><span class="ck">✓</span><span>洪水・土砂災害リスク</span></li>
+        <li><span class="ck">✓</span><span>法規制・開発許可の概要</span></li>
+        <li><span class="ck">✓</span><span>造成費概算（面積別試算付き）</span></li>
+        <li><span class="ck">✓</span><span>5項目レーダーチャート</span></li>
+        <li><span class="ck">✓</span><span>推奨アクション・免責事項</span></li>
+      </ul>
+    </div>
+
+    <!-- セキュリティ -->
+    <div class="security-note">
+      <strong>🔐 セキュリティについて</strong>
+      決済はStripe社のサーバーで処理されます。カード番号等の機密情報は当サービスに保存されません。
+    </div>
+
+    <!-- 注意事項 -->
+    <div class="info-card">
+      <h3>⚠️ ご注意事項</h3>
+      <ul class="feature-list">
+        <li><span>📌</span><span>本レポートは公開データに基づく机上評価です。現地調査の代替ではありません。</span></li>
+        <li><span>📌</span><span>土地取得・開発の最終判断には専門家への相談を推奨します。</span></li>
+        <li><span>📌</span><span>レポートは管理者承認後にメール送付されます（通常1〜2営業日）。</span></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- フッター -->
+<footer>
+  <p>© 2025 土地造成リスク診断サービス　|　本レポートは参考情報であり法的効力を有しません。</p>
+</footer>
+
+<script>
+  // ── 利用用途の選択 ──
+  function selectUse(el) {
+    document.querySelectorAll('.radio-label').forEach(l => l.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // ── エラー表示 ──
+  function showFormError(msg) {
+    const el = document.getElementById('formAlert');
+    document.getElementById('formAlertMsg').textContent = msg;
+    el.style.display = 'flex';
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function hideFormError() {
+    document.getElementById('formAlert').style.display = 'none';
+  }
+
+  // ── フォーム送信 ──
+  document.getElementById('orderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideFormError();
+
+    const name     = document.getElementById('name').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    const pref     = document.getElementById('prefecture').value;
+    const city     = document.getElementById('cityAddr').value.trim();
+    const luRadio  = document.querySelector('input[name="land_use"]:checked');
+
+    if (!name)    { showFormError('依頼者名を入力してください。'); return; }
+    if (!email || !email.includes('@')) { showFormError('正しいメールアドレスを入力してください。'); return; }
+    if (!pref)    { showFormError('都道府県を選択してください。'); return; }
+    if (!city)    { showFormError('市区町村・番地を入力してください。'); return; }
+    if (!luRadio) { showFormError('利用用途を選択してください。'); return; }
+
+    const address = pref + city;
+
+    // ローディング
+    const btn      = document.getElementById('submitBtn');
+    const spinner  = document.getElementById('spinner');
+    const btnIcon  = document.getElementById('btnIcon');
+    const btnText  = document.getElementById('btnText');
+    btn.disabled   = true;
+    spinner.style.display = 'block';
+    btnIcon.style.display = 'none';
+    btnText.textContent   = '処理中...しばらくお待ちください';
+
+    try {
+      const resp = await fetch('/api/submit', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name, email, address, land_use: luRadio.value }),
+      });
+      const data = await resp.json();
+
+      if (data.checkout_url) {
+        btnText.textContent = 'Stripeへ移動中...';
+        window.location.href = data.checkout_url;
+      } else {
+        showFormError(data.error || 'エラーが発生しました。再度お試しください。');
+        resetBtn();
+      }
+    } catch (err) {
+      showFormError('通信エラーが発生しました。インターネット接続を確認して再度お試しください。');
+      resetBtn();
+    }
+
+    function resetBtn() {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnIcon.style.display = 'inline';
+      btnText.textContent   = '決済に進む（¥30,000）';
+    }
+  });
+</script>
+</body>
+</html>

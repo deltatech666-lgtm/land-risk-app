@@ -1,0 +1,39 @@
+# 環境変数（絶対にGitHubにアップしない）
+.env
+
+# データベース（本番はRender PostgreSQLを使用）
+*.db
+*.sqlite
+*.sqlite3
+
+# 生成されたレポートPDF
+reports/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ログ
+*.log

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お申込み完了 | 土地造成リスク診断サービス</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+      background: linear-gradient(135deg, #E8F5E9 0%, #E3F2FD 100%);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px; color: #212121;
+    }
+    .card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.12);
+      padding: 48px 40px; max-width: 520px; width: 100%; text-align: center;
+    }
+    .icon-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, #2E7D32, #43A047);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; margin: 0 auto 24px;
+      box-shadow: 0 4px 16px rgba(46,125,50,.35);
+    }
+    h1 { font-size: 24px; font-weight: 700; color: #1B5E20; margin-bottom: 10px; }
+    .subtitle { font-size: 15px; color: #555; margin-bottom: 32px; }
+    .info-box {
+      background: #F1F8E9; border: 1.5px solid #A5D6A7;
+      border-radius: 10px; padding: 20px 24px; margin-bottom: 28px; text-align: left;
+    }
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid #C8E6C9;
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #555; }
+    .info-value { font-weight: 700; color: #1B5E20; }
+    .order-id { font-size: 28px; font-weight: 700; color: #1B5E20; }
+
+    .steps { text-align: left; margin-bottom: 28px; }
+    .steps h3 { font-size: 14px; font-weight: 700; color: #1A237E;
+                margin-bottom: 12px; }
+    .step-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      margin-bottom: 12px; font-size: 14px;
+    }
+    .step-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #1A237E; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+    }
+    .notice {
+      background: #FFF8E1; border: 1px solid #FFE082;
+      border-radius: 8px; padding: 12px 16px;
+      font-size: 13px; color: #5D4037; margin-bottom: 28px; text-align: left;
+    }
+    .back-btn {
+      display: inline-block; padding: 13px 32px;
+      background: #1A237E; color: #fff;
+      font-size: 15px; font-weight: 700; border-radius: 8px;
+      text-decoration: none; transition: background .2s;
+    }
+    .back-btn:hover { background: #283593; }
+    footer {
+      margin-top: 24px; font-size: 12px; color: #888; text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon-circle">✓</div>
+
+    <h1>お申込みが完了しました！</h1>
+    <p class="subtitle">{{ name }} 様、ご注文ありがとうございます。</p>
+
+    <div class="info-box">
+      <div class="info-row">
+        <span class="info-label">受付番号</span>
+        <span class="order-id">#{{ '%04d' | format(order_id) }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">お支払い状況</span>
+        <span class="info-value">✅ 決済完了</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">レポート状況</span>
+        <span class="info-value">🔍 診断・作成中</span>
+      </div>
+    </div>
+
+    <div class="steps">
+      <h3>📬 今後の流れ</h3>
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div>担当者がデータを確認し、診断レポートを作成します。</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div>レポート完成後、ご登録のメールアドレスへPDFを送付します。</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div>通常<strong>1〜2営業日</strong>以内にお届けします。</div>
+      </div>
+    </div>
+
+    <div class="notice">
+      📌 メールが届かない場合は、迷惑メールフォルダをご確認ください。
+      それでも届かない場合は、受付番号をお手元にご準備の上お問い合わせください。
+    </div>
+
+    <a href="/" class="back-btn">トップページへ戻る</a>
+  </div>
+
+  <footer>
+    © 2025 土地造成リスク診断サービス
+  </footer>
+</body>
+</html>

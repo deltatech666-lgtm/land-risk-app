@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理画面 | 土地造成リスク診断</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:  #1A237E;
+      --primary-l:#283593;
+      --green:    #2E7D32;
+      --red:      #C62828;
+      --orange:   #E65100;
+      --bg:       #F4F6FB;
+      --card:     #FFFFFF;
+      --border:   #E0E0E0;
+      --text:     #212121;
+      --muted:    #757575;
+    }
+    body { font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+           background: var(--bg); color: var(--text); }
+
+    /* ── ヘッダー ── */
+    header {
+      background: var(--primary); color: #fff;
+      padding: 0 28px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 58px;
+    }
+    .brand { font-size: 16px; font-weight: 700; }
+    .brand small { font-size: 12px; font-weight: 400; margin-left: 8px; opacity: .75; }
+    .header-actions { display: flex; gap: 10px; }
+    .btn-outline {
+      padding: 6px 16px; border: 1.5px solid rgba(255,255,255,.6);
+      color: #fff; border-radius: 6px; text-decoration: none;
+      font-size: 13px; font-weight: 600; transition: all .2s;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,.15); }
+
+    /* ── コンテンツ ── */
+    .content { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+
+    /* ── 統計カード ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+             gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--card); border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      padding: 20px 22px; display: flex; align-items: center; gap: 16px;
+    }
+    .stat-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .stat-icon.blue   { background: #E3F2FD; }
+    .stat-icon.green  { background: #E8F5E9; }
+    .stat-icon.orange { background: #FFF3E0; }
+    .stat-icon.purple { background: #EDE7F6; }
+    .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ── フィルター・検索バー ── */
+    .toolbar {
+      background: var(--card); border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      padding: 16px 20px; margin-bottom: 20px;
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    .toolbar-title { font-size: 18px; font-weight: 700; color: var(--primary);
+                     margin-right: 8px; }
+    .search-input {
+      padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-family: inherit; width: 240px;
+    }
+    .search-input:focus { outline: none; border-color: var(--primary); }
+    .filter-select {
+      padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: inherit; background: #fff;
+    }
+    .filter-select:focus { outline: none; border-color: var(--primary); }
+
+    /* ── テーブル ── */
+    .table-wrap {
+      background: var(--card); border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: var(--primary); color: #fff; font-weight: 600;
+      padding: 13px 14px; text-align: left; white-space: nowrap;
+    }
+    thead th:first-child { border-radius: 10px 0 0 0; }
+    thead th:last-child  { border-radius: 0 10px 0 0; }
+    tbody tr { border-bottom: 1px solid #F0F0F0; transition: background .15s; }
+    tbody tr:hover { background: #F8F9FF; }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: 12px 14px; vertical-align: middle; }
+    td.mono { font-family: monospace; font-size: 12px; }
+    .empty-row td { text-align: center; color: var(--muted); padding: 48px; font-size: 15px; }
+
+    /* ── バッジ ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-paid     { background: #E8F5E9; color: #1B5E20; }
+    .badge-pending  { background: #FFF3E0; color: #E65100; }
+    .badge-sent     { background: #E3F2FD; color: #0D47A1; }
+    .badge-generated{ background: #EDE7F6; color: #4527A0; }
+    .rank-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 50%;
+      font-size: 16px; font-weight: 700;
+    }
+    .rank-A { background: #E8F5E9; color: #1B5E20; }
+    .rank-B { background: #E3F2FD; color: #1565C0; }
+    .rank-C { background: #FFF3E0; color: #E65100; }
+    .rank-D { background: #FFEBEE; color: #B71C1C; }
+
+    /* ── ボタン ── */
+    .btn-approve {
+      padding: 7px 14px; background: #1B5E20; color: #fff;
+      border: none; border-radius: 7px; cursor: pointer;
+      font-size: 13px; font-weight: 600; font-family: inherit;
+      transition: all .2s; white-space: nowrap;
+    }
+    .btn-approve:hover:not(:disabled) { background: #2E7D32; transform: translateY(-1px); }
+    .btn-approve:disabled { background: #B0BEC5; cursor: not-allowed; transform: none; }
+
+    .btn-dl {
+      padding: 7px 12px; background: #1A237E; color: #fff;
+      border: none; border-radius: 7px; cursor: pointer;
+      font-size: 12px; font-weight: 600; font-family: inherit;
+      text-decoration: none; display: inline-block;
+      transition: background .2s; white-space: nowrap;
+    }
+    .btn-dl:hover { background: #283593; }
+
+    .btn-sent {
+      padding: 7px 14px; background: #4CAF50; color: #fff;
+      border: none; border-radius: 7px;
+      font-size: 13px; font-weight: 600; cursor: default; white-space: nowrap;
+    }
+
+    .action-group { display: flex; gap: 6px; align-items: center; }
+
+    /* ── トースト通知 ── */
+    #toast {
+      position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+      padding: 14px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      box-shadow: 0 6px 24px rgba(0,0,0,.18);
+      display: none; align-items: center; gap: 10px;
+      max-width: 360px; animation: slideUp .3s ease;
+    }
+    #toast.success { background: #1B5E20; color: #fff; }
+    #toast.error   { background: #B71C1C; color: #fff; }
+    #toast.info    { background: #1A237E; color: #fff; }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* ── モーダル（詳細） ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 16px 64px rgba(0,0,0,.2);
+      padding: 32px; width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto;
+    }
+    .modal-title {
+      font-size: 18px; font-weight: 700; color: var(--primary);
+      margin-bottom: 20px; padding-bottom: 12px;
+      border-bottom: 2px solid var(--primary);
+    }
+    .modal-close {
+      float: right; background: none; border: none; font-size: 22px;
+      cursor: pointer; color: var(--muted); line-height: 1;
+    }
+    .detail-row {
+      display: flex; gap: 12px; padding: 9px 0;
+      border-bottom: 1px solid #F0F0F0; font-size: 14px;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-key { width: 120px; color: var(--muted); flex-shrink: 0; }
+    .detail-val { font-weight: 600; word-break: break-all; }
+
+    @media(max-width: 900px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media(max-width: 600px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .header-actions .btn-outline:not(:last-child) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      🏗 管理画面
+      <small>土地造成リスク診断サービス</small>
+    </div>
+    <div class="header-actions">
+      <a href="/" class="btn-outline" target="_blank">受付フォーム ↗</a>
+      <a href="/admin/logout" class="btn-outline">ログアウト</a>
+    </div>
+  </div>
+</header>
+
+<!-- コンテンツ -->
+<div class="content">
+
+  <!-- 統計 -->
+  <div class="stats">
+    {% set total    = orders | length %}
+    {% set paid     = orders | selectattr('payment_status','eq','paid') | list | length %}
+    {% set sent     = orders | selectattr('report_status','eq','sent') | list | length %}
+    {% set pending  = orders | selectattr('report_status','eq','pending') | list | length %}
+
+    <div class="stat-card">
+      <div class="stat-icon blue">📋</div>
+      <div>
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">総受注数</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">💳</div>
+      <div>
+        <div class="stat-value">{{ paid }}</div>
+        <div class="stat-label">決済完了</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">⏳</div>
+      <div>
+        <div class="stat-value">{{ pending }}</div>
+        <div class="stat-label">未承認（対応待ち）</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">📨</div>
+      <div>
+        <div class="stat-value">{{ sent }}</div>
+        <div class="stat-label">送付済み</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ツールバー -->
+  <div class="toolbar">
+    <span class="toolbar-title">案件一覧</span>
+    <input type="text" class="search-input" id="searchInput"
+           placeholder="🔍 依頼者名・住所で検索...">
+    <select class="filter-select" id="paymentFilter">
+      <option value="">すべての支払い状況</option>
+      <option value="paid">決済完了</option>
+      <option value="pending">未決済</option>
+    </select>
+    <select class="filter-select" id="reportFilter">
+      <option value="">すべてのレポート状況</option>
+      <option value="pending">未承認</option>
+      <option value="generated">生成済み</option>
+      <option value="sent">送付済み</option>
+    </select>
+  </div>
+
+  <!-- テーブル -->
+  <div class="table-wrap">
+    <table id="ordersTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>受注日時</th>
+          <th>依頼者名</th>
+          <th>メール</th>
+          <th>住所</th>
+          <th>用途</th>
+          <th>支払い</th>
+          <th>ランク</th>
+          <th>レポート</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        {% if orders %}
+          {% for o in orders %}
+          <tr data-name="{{ o.requester_name }}"
+              data-addr="{{ o.address }}"
+              data-pay="{{ o.payment_status }}"
+              data-rep="{{ o.report_status }}">
+            <td><strong>#{{ '%04d' | format(o.id) }}</strong></td>
+            <td class="mono">{{ o.created_at }}</td>
+            <td>
+              <button class="btn-dl" style="background:#546E7A;"
+                      onclick="showDetail({{ loop.index0 }})">
+                {{ o.requester_name }}
+              </button>
+            </td>
+            <td class="mono" style="font-size:12px;">{{ o.email }}</td>
+            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                title="{{ o.address }}">{{ o.address }}</td>
+            <td>{{ o.land_use }}</td>
+            <td>
+              {% if o.payment_status == 'paid' %}
+                <span class="badge badge-paid">✅ 決済済み</span>
+              {% else %}
+                <span class="badge badge-pending">⏳ 未決済</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if o.overall_rank %}
+                <span class="rank-badge rank-{{ o.overall_rank }}">{{ o.overall_rank }}</span>
+              {% else %}
+                <span style="color:#bbb;">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if o.report_status == 'sent' %}
+                <span class="badge badge-sent">📨 送付済み</span>
+              {% elif o.report_status == 'generated' %}
+                <span class="badge badge-generated">📄 生成済み</span>
+              {% else %}
+                <span class="badge badge-pending">⏳ 未承認</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-group">
+                {% if o.report_status == 'sent' %}
+                  <button class="btn-sent" id="approve-{{ o.id }}">✅ 送付済み</button>
+                {% else %}
+                  <button class="btn-approve" id="approve-{{ o.id }}"
+                          onclick="approveOrder({{ o.id }}, this)"
+                          {% if o.payment_status != 'paid' %}disabled title="決済完了後に承認できます"{% endif %}>
+                    📤 承認・送信
+                  </button>
+                {% endif %}
+                <a href="/admin/download/{{ o.id }}" class="btn-dl"
+                   title="PDFをダウンロード">⬇ PDF</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row">
+            <td colspan="10">まだ案件がありません</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /content -->
+
+<!-- 詳細モーダル -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-title">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      📋 案件詳細
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div id="toast"></div>
+
+<script>
+  // ── データ（Jinja2から渡す） ──
+  const ORDERS = {{ orders | tojson }};
+
+  // ── トースト ──
+  function showToast(msg, type = 'info', duration = 4000) {
+    const el = document.getElementById('toast');
+    el.textContent = (type === 'success' ? '✅ ' : type === 'error' ? '❌ ' : 'ℹ️ ') + msg;
+    el.className = type;
+    el.style.display = 'flex';
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.style.display = 'none'; }, duration);
+  }
+
+  // ── 承認・PDF送信 ──
+  async function approveOrder(orderId, btn) {
+    if (!confirm(`受付番号 #${String(orderId).padStart(4,'0')} のレポートを承認し、メール送信しますか？`)) {
+      return;
+    }
+
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ 処理中...';
+
+    try {
+      const resp = await fetch(`/admin/approve/${orderId}`, { method: 'POST' });
+      const data = await resp.json();
+
+      if (data.success) {
+        showToast(data.message, 'success', 5000);
+        btn.outerHTML = `<button class="btn-sent">✅ 送付済み</button>`;
+        // レポート状況バッジを更新
+        const row = document.querySelector(`#approve-${orderId}`)?.closest('tr')
+                    || document.querySelector(`[id^="approve-"]`)?.closest('tr');
+        const repCell = btn.closest('tr')?.querySelectorAll('td')[8];
+        if (repCell) {
+          repCell.innerHTML = '<span class="badge badge-sent">📨 送付済み</span>';
+        }
+      } else {
+        showToast(data.error || 'エラーが発生しました', 'error');
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    } catch (e) {
+      showToast('通信エラーが発生しました', 'error');
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
+
+  // ── 詳細モーダル ──
+  function showDetail(idx) {
+    const o = ORDERS[idx];
+    if (!o) return;
+
+    const rankLabel = { A:'優良', B:'良好', C:'要注意', D:'高リスク' };
+    const rows = [
+      ['受付番号',       `#${String(o.id).padStart(4,'0')}`],
+      ['受注日時',       o.created_at || '—'],
+      ['依頼者名',       o.requester_name],
+      ['メール',         o.email],
+      ['住所',           o.address],
+      ['利用用途',       o.land_use],
+      ['支払い状況',     o.payment_status === 'paid' ? '✅ 決済完了' : '⏳ 未決済'],
+      ['──',             '─────────────────'],
+      ['緯度',           o.latitude  ? `${o.latitude}°`  : '—'],
+      ['経度',           o.longitude ? `${o.longitude}°` : '—'],
+      ['標高',           o.elevation  != null ? `${o.elevation} m` : '—'],
+      ['周辺標高差',     o.elevation_diff != null ? `${o.elevation_diff.toFixed(1)} m` : '—'],
+      ['地盤増幅率',     o.soil_amplification != null ? o.soil_amplification.toFixed(2) : '—'],
+      ['想定浸水深',     o.flood_depth != null ? `${o.flood_depth} m` : '—'],
+      ['土砂リスク',     o.landslide_risk > 0 ? '有' : '無'],
+      ['──',             '─────────────────'],
+      ['総合ランク',     o.overall_rank ? `${o.overall_rank}（${rankLabel[o.overall_rank] || ''}）` : '—'],
+      ['総合スコア',     o.total_score != null ? `${o.total_score}/100点` : '—'],
+      ['地形スコア',     o.score_terrain != null ? `${o.score_terrain}/20` : '—'],
+      ['地盤スコア',     o.score_soil != null ? `${o.score_soil}/20` : '—'],
+      ['災害スコア',     o.score_disaster != null ? `${o.score_disaster}/20` : '—'],
+      ['法規制スコア',   o.score_regulation != null ? `${o.score_regulation}/20` : '—'],
+      ['コストスコア',   o.score_cost != null ? `${o.score_cost}/20` : '—'],
+      ['──',             '─────────────────'],
+      ['造成費',         o.grading_cost_per_sqm != null ? `${o.grading_cost_per_sqm.toLocaleString()}円/㎡` : '—'],
+      ['地盤改良費',     o.soil_improvement_cost_per_sqm != null ? `${o.soil_improvement_cost_per_sqm.toLocaleString()}円/㎡` : '—'],
+      ['合計概算',       o.total_cost_per_sqm != null ? `${o.total_cost_per_sqm.toLocaleString()}円/㎡` : '—'],
+      ['レポート状況',   o.report_status],
+      ['送付日時',       o.sent_at || '—'],
+    ];
+
+    const html = rows.map(([k, v]) => {
+      if (k === '──') return `<div style="border-top:1px dashed #ddd; margin:6px 0;"></div>`;
+      return `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v}</span></div>`;
+    }).join('');
+
+    document.getElementById('modalContent').innerHTML = html;
+    document.getElementById('detailModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('detailModal').classList.remove('active');
+  }
+
+  // モーダル外クリックで閉じる
+  document.getElementById('detailModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  // ── 検索・フィルター ──
+  function filterTable() {
+    const q     = document.getElementById('searchInput').value.toLowerCase();
+    const pay   = document.getElementById('paymentFilter').value;
+    const rep   = document.getElementById('reportFilter').value;
+    const rows  = document.querySelectorAll('#tableBody tr[data-name]');
+
+    rows.forEach(row => {
+      const name = (row.dataset.name || '').toLowerCase();
+      const addr = (row.dataset.addr || '').toLowerCase();
+      const rowPay = row.dataset.pay || '';
+      const rowRep = row.dataset.rep || '';
+
+      const matchQ   = !q   || name.includes(q) || addr.includes(q);
+      const matchPay = !pay || rowPay === pay;
+      const matchRep = !rep || rowRep === rep;
+
+      row.style.display = (matchQ && matchPay && matchRep) ? '' : 'none';
+    });
+  }
+
+  document.getElementById('searchInput').addEventListener('input', filterTable);
+  document.getElementById('paymentFilter').addEventListener('change', filterTable);
+  document.getElementById('reportFilter').addEventListener('change', filterTable);
+</script>
+</body>
+</html>

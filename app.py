@@ -438,9 +438,13 @@ def generate_radar_chart(order: dict) -> bytes:
     values  = [v / 20 for v in raw_scores]
     values += values[:1]
 
-    # フォント設定（Windowsの場合）
+    # フォント設定（NotoSansJP）
     try:
-        plt.rcParams['font.family'] = 'MS Gothic'
+        import matplotlib
+        import matplotlib.font_manager as fm
+        font_path = os.path.join(os.path.dirname(__file__), 'fonts', 'NotoSansJP-Regular.ttf')
+        fm.fontManager.addfont(font_path)
+        matplotlib.rcParams['font.family'] = 'Noto Sans JP'
     except Exception:
         pass
 
@@ -688,11 +692,12 @@ def build_pdf(order: dict) -> bytes:
     story.append(Spacer(1, 0.2 * cm))
 
     label_tbl = Table(
-        [[f'総合スコア: {score}/100点　　{RANK_LABELS.get(rank, "")}']], colWidths=[17 * cm])
+        [[Paragraph(f'総合スコア: {score}/100点　　{RANK_LABELS.get(rank, "")}',
+                    ParagraphStyle('RankLabel', fontName=F, fontSize=9, leading=13,
+                                   textColor=rank_color, alignment=TA_CENTER))]],
+        colWidths=[17 * cm])
     label_tbl.setStyle(TableStyle([
         ('FONTNAME',      (0, 0), (-1, -1), F),
-        ('FONTSIZE',      (0, 0), (-1, -1), 10),
-        ('TEXTCOLOR',     (0, 0), (-1, -1), rank_color),
         ('BACKGROUND',    (0, 0), (-1, -1), rank_bg),
         ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
         ('TOPPADDING',    (0, 0), (-1, -1), 7),
@@ -1030,6 +1035,76 @@ def build_pdf(order: dict) -> bytes:
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
     story.append(footer)
+
+    # ============================================================
+    # PAGE 9: 無料相談CTA
+    # ============================================================
+    story.append(PageBreak())
+    story.append(Spacer(1, 1.5 * cm))
+
+    cta_header = Table([['■ より詳細な検討をご希望の方へ']], colWidths=[17 * cm])
+    cta_header.setStyle(TableStyle([
+        ('FONTNAME',      (0, 0), (-1, -1), F),
+        ('FONTSIZE',      (0, 0), (-1, -1), 16),
+        ('BACKGROUND',    (0, 0), (-1, -1), colors.HexColor('#1A237E')),
+        ('TEXTCOLOR',     (0, 0), (-1, -1), colors.white),
+        ('ALIGN',         (0, 0), (-1, -1), 'LEFT'),
+        ('TOPPADDING',    (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 14),
+    ]))
+    story.append(cta_header)
+    story.append(Spacer(1, 0.5 * cm))
+
+    s_cta_body = S('CTABody', fontSize=11, leading=20, spaceAfter=6)
+    s_cta_contact = S('CTAContact', fontSize=12, leading=22, spaceAfter=4,
+                      textColor=colors.HexColor('#1A237E'))
+
+    story.append(Paragraph(
+        '本レポートの診断結果をもとに、現地調査・詳細設計・造成工事のご相談を承っております。',
+        s_cta_body))
+    story.append(Spacer(1, 0.6 * cm))
+
+    contact_tbl = Table([
+        ['▶ 無料相談はこちら'],
+        ['　メール：deltatech666@gmail.com'],
+        ['　担当：関根 寛人（土木造成設計 専門家）'],
+    ], colWidths=[17 * cm])
+    contact_tbl.setStyle(TableStyle([
+        ('FONTNAME',      (0, 0), (-1, -1), F),
+        ('FONTSIZE',      (0, 0), (0, 0),   13),
+        ('FONTSIZE',      (0, 1), (-1, -1), 12),
+        ('BACKGROUND',    (0, 0), (-1, -1), colors.HexColor('#E3F2FD')),
+        ('TEXTCOLOR',     (0, 0), (-1, -1), colors.HexColor('#1A237E')),
+        ('BOX',           (0, 0), (-1, -1), 2, colors.HexColor('#1565C0')),
+        ('TOPPADDING',    (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 14),
+    ]))
+    story.append(contact_tbl)
+    story.append(Spacer(1, 0.6 * cm))
+
+    story.append(Paragraph('対応サービス内容：', s_h2))
+    for item in [
+        '・造成設計図の作成',
+        '・工事費用の詳細見積もり',
+        '・施工会社のご紹介',
+        '・許認可申請サポート',
+    ]:
+        story.append(Paragraph(item, s_cta_body))
+
+    story.append(Spacer(1, 0.8 * cm))
+    closing_tbl = Table([['お気軽にお問い合わせください。']], colWidths=[17 * cm])
+    closing_tbl.setStyle(TableStyle([
+        ('FONTNAME',      (0, 0), (-1, -1), F),
+        ('FONTSIZE',      (0, 0), (-1, -1), 13),
+        ('BACKGROUND',    (0, 0), (-1, -1), colors.HexColor('#1A237E')),
+        ('TEXTCOLOR',     (0, 0), (-1, -1), colors.white),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
+        ('TOPPADDING',    (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    story.append(closing_tbl)
 
     doc.build(story)
     buf.seek(0)

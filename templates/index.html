@@ -316,6 +316,13 @@
           <p class="form-hint">可能な限り詳細な住所（番地まで）を入力すると精度が上がります</p>
         </div>
 
+        <!-- 敷地面積 -->
+        <div class="form-group">
+          <label for="siteArea">敷地面積（㎡） <span class="req">※必須</span></label>
+          <input type="number" id="siteArea" placeholder="例：300" min="1" step="1">
+          <p class="form-hint">土地の面積を㎡単位で入力してください（例：100、300、1000）</p>
+        </div>
+
         <!-- 利用用途 -->
         <div class="form-group">
           <label>利用用途 <span class="req">※必須</span></label>
@@ -452,12 +459,14 @@
     const email    = document.getElementById('email').value.trim();
     const pref     = document.getElementById('prefecture').value;
     const city     = document.getElementById('cityAddr').value.trim();
+    const siteArea = parseFloat(document.getElementById('siteArea').value);
     const luRadio  = document.querySelector('input[name="land_use"]:checked');
 
     if (!name)    { showFormError('依頼者名を入力してください。'); return; }
     if (!email || !email.includes('@')) { showFormError('正しいメールアドレスを入力してください。'); return; }
     if (!pref)    { showFormError('都道府県を選択してください。'); return; }
     if (!city)    { showFormError('市区町村・番地を入力してください。'); return; }
+    if (!siteArea || siteArea <= 0) { showFormError('敷地面積を正しく入力してください（0より大きい数値）。'); return; }
     if (!luRadio) { showFormError('利用用途を選択してください。'); return; }
 
     const address = pref + city;
@@ -476,7 +485,7 @@
       const resp = await fetch('/api/submit', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ name, email, address, land_use: luRadio.value }),
+        body:    JSON.stringify({ name, email, address, site_area: siteArea, land_use: luRadio.value }),
       });
       const data = await resp.json();
 

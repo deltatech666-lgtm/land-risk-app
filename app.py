@@ -103,11 +103,17 @@ def init_db():
                 grading_cost_per_sqm        INTEGER,
                 soil_improvement_cost_per_sqm INTEGER,
                 total_cost_per_sqm          INTEGER,
+                site_area                   REAL,
                 api_data                    TEXT,
                 pdf_path                    TEXT
             )
         ''')
         db.commit()
+        # 既存DBへのマイグレーション: site_area カラムがなければ追加
+        existing_cols = [row[1] for row in db.execute('PRAGMA table_info(orders)').fetchall()]
+        if 'site_area' not in existing_cols:
+            db.execute('ALTER TABLE orders ADD COLUMN site_area REAL')
+            db.commit()
 
 
 # gunicorn（Render等）でも起動時にテーブルを作成する
@@ -239,8 +245,17 @@ def get_elevation(lon: float, lat: float) -> float:
     return 0.0
 
 
-def get_elevation_diff(lon: float, lat: float, radius_deg: float = 0.005) -> float:
+def calc_radius_from_area(site_area: float) -> float:
+    """敷地面積(㎡)から評価半径(m)を計算。最小30m、最大200m"""
+    import math
+    radius_m = math.sqrt(site_area / math.pi) * 2
+    return max(30.0, min(200.0, radius_m))
+
+
+def get_elevation_diff(lon: float, lat: float, radius_m: float = 500.0) -> float:
     """周辺4点+中心の標高差（最大-最小）を返す"""
+    # 1度 ≈ 111,000m として度単位に変換
+    radius_deg = radius_m / 111000.0
     try:
         points = [
             (lon + radius_deg, lat),
@@ -639,11 +654,13 @@ def build_pdf(order: dict) -> bytes:
             ('LEFTPADDING',    (0, 0), (-1, -1), 8),
         ])
 
-    ed   = order.get('elevation_diff', 1.0) or 1.0
-    amp  = order.get('soil_amplification', 1.5) or 1.5
-    fd   = order.get('flood_depth', 0) or 0
-    ls   = order.get('landslide_risk', 0) or 0
-    use  = order.get('land_use', '住宅') or '住宅'
+    ed        = order.get('elevation_diff', 1.0) or 1.0
+    amp       = order.get('soil_amplification', 1.5) or 1.5
+    fd        = order.get('flood_depth', 0) or 0
+    ls        = order.get('landslide_risk', 0) or 0
+    use       = order.get('land_use', '住宅') or '住宅'
+    site_area = order.get('site_area', 0) or 0
+    radius_m  = calc_radius_from_area(site_area) if site_area > 0 else 500.0
 
     # ============================================================
     # PAGE 1: 表紙
@@ -751,11 +768,13 @@ def build_pdf(order: dict) -> bytes:
     section_header('第1章　地形・地盤概況')
 
     story.append(Paragraph('■ 位置情報', s_h2))
+    site_area_str = f"{site_area:,.0f} ㎡" if site_area > 0 else 'N/A'
     story.append(kv_table([
         ['緯度',       f"{order.get('latitude', 'N/A')}°"],
         ['経度',       f"{order.get('longitude', 'N/A')}°"],
         ['標高',       f"{order.get('elevation', 'N/A')} m"],
-        ['周辺標高差', f"{ed:.1f} m（半径約500m圏内）"],
+        ['敷地面積',   site_area_str],
+        ['周辺標高差', f"{ed:.1f} m（半径約{radius_m:.0f}m圏内）"],
     ]))
     story.append(Spacer(1, 0.5 * cm))
 
@@ -889,17 +908,39 @@ def build_pdf(order: dict) -> bytes:
     story.append(Spacer(1, 0.5 * cm))
 
     story.append(Paragraph('■ 面積別費用試算', s_h2))
+    # 表示する面積リストを生成。入力敷地面積があれば先頭に追加（重複除外）
+    base_areas = [100, 200, 300, 500, 1000]
+    if site_area > 0:
+        input_area = int(round(site_area))
+        trial_areas = sorted(set([input_area] + base_areas))
+    else:
+        trial_areas = base_areas
+        input_area  = None
+
     trial = [['面積（㎡）', '造成費（万円）', '地盤改良費（万円）', '合計（万円）']]
-    for area in [100, 200, 300, 500, 1000]:
+    for area in trial_areas:
+        label = f'{area:,}'
+        if input_area and area == input_area:
+            label = f'{area:,} ★'
         trial.append([
-            f'{area:,}',
+            label,
             f'{grading * area // 10000:,}',
             f'{soil_imp * area // 10000:,}' if soil_imp > 0 else '－',
             f'{total_c * area // 10000:,}',
         ])
     tbl2 = Table(trial, colWidths=[4 * cm, 4.5 * cm, 5 * cm, 4.5 * cm])
-    tbl2.setStyle(score_table_style())
+    style2 = score_table_style()
+    # 入力敷地面積の行を強調表示
+    if input_area:
+        for i, area in enumerate(trial_areas, start=1):
+            if area == input_area:
+                style2.add('BACKGROUND', (0, i), (-1, i),
+                           colors.HexColor('#E8F5E9'))
+                style2.add('FONTNAME', (0, i), (-1, i), FONT_NAME)
+    tbl2.setStyle(style2)
     story.append(tbl2)
+    if input_area:
+        story.append(Paragraph(f'★ 入力敷地面積（{input_area:,} ㎡）の試算行', s_small))
     story.append(Spacer(1, 0.3 * cm))
     story.append(Paragraph(
         '※ 上記は概算値です。実際の費用は詳細設計・地盤調査結果により大きく変動します。', s_small))
@@ -1190,6 +1231,14 @@ def submit_form():
             return jsonify({'error': f'{label} は必須です'}), 400
 
     try:
+        site_area_raw = data.get('site_area', '')
+        site_area = float(site_area_raw) if site_area_raw else 0
+        if site_area <= 0:
+            return jsonify({'error': '敷地面積は必須です（0より大きい数値を入力してください）'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': '敷地面積には数値を入力してください'}), 400
+
+    try:
         checkout = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -1213,6 +1262,7 @@ def submit_form():
                 'email':          data['email'].strip(),
                 'address':        data['address'].strip(),
                 'land_use':       data['land_use'].strip(),
+                'site_area':      str(site_area),
             }
         )
         return jsonify({'checkout_url': checkout.url})
@@ -1250,11 +1300,13 @@ def payment_success():
         # 外部APIでデータ取得
         address   = meta.get('address', '')
         land_use  = meta.get('land_use', '住宅')
+        site_area = float(meta.get('site_area', 0) or 0)
+        radius_m  = calc_radius_from_area(site_area) if site_area > 0 else 500.0
 
         geo           = geocode_address(address)
         lat, lon      = geo.get('lat'), geo.get('lon')
-        elevation     = get_elevation(lon, lat)        if lat and lon else None
-        elevation_diff= get_elevation_diff(lon, lat) if lat and lon else 1.0
+        elevation     = get_elevation(lon, lat)                    if lat and lon else None
+        elevation_diff= get_elevation_diff(lon, lat, radius_m)    if lat and lon else 1.0
         jshis         = get_jshis_data(lon, lat)     if lat and lon else {}
         soil_amp      = jshis.get('amplification', 1.5)
         hazard        = get_hazard_data(lon, lat)    if lat and lon else {}
@@ -1281,8 +1333,8 @@ def payment_success():
                     score_terrain, score_soil, score_disaster,
                     score_regulation, score_cost,
                     grading_cost_per_sqm, soil_improvement_cost_per_sqm,
-                    total_cost_per_sqm, api_data
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    total_cost_per_sqm, site_area, api_data
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ''', (
                 meta.get('requester_name'), meta.get('email'),
                 address, land_use, 'paid', sid,
@@ -1295,6 +1347,7 @@ def payment_success():
                 assessment['grading_cost_per_sqm'],
                 assessment['soil_improvement_cost_per_sqm'],
                 assessment['total_cost_per_sqm'],
+                site_area,
                 json.dumps(api_data, ensure_ascii=False)
             ))
             db.commit()

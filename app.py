@@ -144,7 +144,7 @@ def register_japanese_font():
 
     # (path, subfontIndex or None)  ― ttf は None、ttc は 0
     candidates = [
-        (local_ttf,                                                    None),  # ダウンロード済み NotoSansJP
+        (local_ttf,                                                    None),  # リポジトリ同梱 NotoSansJP
         ('C:/Windows/Fonts/meiryo.ttc',                               0),     # Windows
         ('C:/Windows/Fonts/msgothic.ttc',                             0),     # Windows
         ('C:/Windows/Fonts/msmincho.ttc',                             0),     # Windows
@@ -163,23 +163,39 @@ def register_japanese_font():
                 print(f'日本語フォント登録成功: {path}')
                 return
 
-    # どこにもなければ NotoSansJP をダウンロードして使用
+    # フォールバック: NotoSansJP をダウンロード（静的フォントのURLを使用）
+    # Google Fonts は variable font に移行したため static/ サブディレクトリを参照
+    download_urls = [
+        'https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Regular.ttf',
+        'https://github.com/notofonts/noto-cjk/raw/main/Sans/Variable/TTF/Subset/NotoSansJP-Regular.ttf',
+    ]
     try:
         import urllib.request
         os.makedirs(fonts_dir, exist_ok=True)
-        url = ('https://github.com/google/fonts/raw/main/'
-               'ofl/notosansjp/NotoSansJP-Regular.ttf')
-        print(f'NotoSansJP をダウンロード中: {url}')
-        urllib.request.urlretrieve(url, local_ttf)
-        if _try_register(local_ttf):
+        downloaded = False
+        for url in download_urls:
+            try:
+                print(f'NotoSansJP をダウンロード中: {url}')
+                urllib.request.urlretrieve(url, local_ttf)
+                # ダウンロードしたファイルが最低限のサイズか確認（HTML エラーページでないか）
+                if os.path.getsize(local_ttf) > 50_000:
+                    downloaded = True
+                    break
+                else:
+                    print(f'ダウンロードファイルが小さすぎます（HTMLエラーページの可能性）: {os.path.getsize(local_ttf)} bytes')
+                    os.remove(local_ttf)
+            except Exception as e:
+                print(f'ダウンロード失敗 {url}: {e}')
+        if downloaded and _try_register(local_ttf):
             FONT_NAME = 'Japanese'
             _font_registered = True
             print(f'日本語フォント登録成功（ダウンロード）: {local_ttf}')
             return
     except Exception as e:
-        print(f'フォントダウンロード失敗: {e}')
+        print(f'フォントダウンロード処理エラー: {e}')
 
-    print('警告: 日本語フォントが見つかりません。英数字のみ表示されます。')
+    print('警告: 日本語フォントが見つかりません。PDFのテキストが文字化けする可能性があります。')
+    print(f'  対処法: {local_ttf} にNotoSansJP-Regular.ttfを配置してください。')
     _font_registered = True
 
 
@@ -1080,6 +1096,11 @@ def send_report_email(to_email: str, to_name: str,
 def index():
     return render_template('index.html',
                            stripe_publishable_key=STRIPE_PUBLISHABLE_KEY)
+
+
+@app.route('/tokutei')
+def tokutei():
+    return render_template('tokutei.html')
 
 
 @app.route('/api/submit', methods=['POST'])

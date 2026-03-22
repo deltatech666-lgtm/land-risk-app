@@ -121,28 +121,64 @@ FONT_NAME = 'Helvetica'
 _font_registered = False
 
 
+def _try_register(path, idx=None):
+    """フォントファイルを登録する。成功したらTrueを返す。"""
+    try:
+        if idx is not None:
+            pdfmetrics.registerFont(TTFont('Japanese', path, subfontIndex=idx))
+        else:
+            pdfmetrics.registerFont(TTFont('Japanese', path))
+        return True
+    except Exception as e:
+        print(f'フォント登録失敗 {path}: {e}')
+        return False
+
+
 def register_japanese_font():
     global FONT_NAME, _font_registered
     if _font_registered:
         return
+
+    fonts_dir = os.path.join(BASE_DIR, 'fonts')
+    local_ttf  = os.path.join(fonts_dir, 'NotoSansJP-Regular.ttf')
+
+    # (path, subfontIndex or None)  ― ttf は None、ttc は 0
     candidates = [
-        ('C:/Windows/Fonts/meiryo.ttc',      0),
-        ('C:/Windows/Fonts/msgothic.ttc',    0),
-        ('C:/Windows/Fonts/msmincho.ttc',    0),
-        ('C:/Windows/Fonts/YuGothR.ttc',     0),
-        ('/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc', 0),
-        ('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', 0),
+        (local_ttf,                                                    None),  # ダウンロード済み NotoSansJP
+        ('C:/Windows/Fonts/meiryo.ttc',                               0),     # Windows
+        ('C:/Windows/Fonts/msgothic.ttc',                             0),     # Windows
+        ('C:/Windows/Fonts/msmincho.ttc',                             0),     # Windows
+        ('C:/Windows/Fonts/YuGothR.ttc',                              0),     # Windows
+        ('/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc',           0),     # macOS
+        ('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',    0),     # Linux (apt)
+        ('/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',    0),     # Linux (alt)
+        ('/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',         0),     # Linux (alt2)
     ]
+
     for path, idx in candidates:
         if os.path.exists(path):
-            try:
-                pdfmetrics.registerFont(TTFont('Japanese', path, subfontIndex=idx))
+            if _try_register(path, idx):
                 FONT_NAME = 'Japanese'
                 _font_registered = True
                 print(f'日本語フォント登録成功: {path}')
                 return
-            except Exception as e:
-                print(f'フォント登録失敗 {path}: {e}')
+
+    # どこにもなければ NotoSansJP をダウンロードして使用
+    try:
+        import urllib.request
+        os.makedirs(fonts_dir, exist_ok=True)
+        url = ('https://github.com/google/fonts/raw/main/'
+               'ofl/notosansjp/NotoSansJP-Regular.ttf')
+        print(f'NotoSansJP をダウンロード中: {url}')
+        urllib.request.urlretrieve(url, local_ttf)
+        if _try_register(local_ttf):
+            FONT_NAME = 'Japanese'
+            _font_registered = True
+            print(f'日本語フォント登録成功（ダウンロード）: {local_ttf}')
+            return
+    except Exception as e:
+        print(f'フォントダウンロード失敗: {e}')
+
     print('警告: 日本語フォントが見つかりません。英数字のみ表示されます。')
     _font_registered = True
 
@@ -1025,9 +1061,15 @@ def send_report_email(to_email: str, to_name: str,
         )
         message.attachment = attachment
         resp = sg.send(message)
+        print(f'メール送信 status={resp.status_code} to={to_email}')
         return resp.status_code in (200, 201, 202)
     except Exception as e:
         print(f'メール送信エラー: {e}')
+        # SendGrid の詳細エラーを表示（認証エラー等の原因確認に使用）
+        if hasattr(e, 'body'):
+            print(f'SendGrid エラー詳細: {e.body}')
+        if hasattr(e, 'status_code'):
+            print(f'SendGrid HTTP ステータス: {e.status_code}')
         return False
 
 

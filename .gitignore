@@ -9,6 +9,9 @@
 # 生成されたレポートPDF
 reports/
 
+# ダウンロードしたフォント（render.yamlのbuildCommandで取得）
+fonts/
+
 # Python
 __pycache__/
 *.py[cod]

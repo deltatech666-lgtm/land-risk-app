@@ -2,7 +2,7 @@ services:
   - type: web
     name: land-risk-app
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python -c "import os,urllib.request; d='fonts'; os.makedirs(d,exist_ok=True); f=os.path.join(d,'NotoSansJP-Regular.ttf'); (urllib.request.urlretrieve('https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP-Regular.ttf',f) if not os.path.exists(f) else None); print('Font ready:',f)"
     startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION

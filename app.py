@@ -680,12 +680,14 @@ def build_pdf(order: dict) -> bytes:
     rank_tbl = Table([[rank]], colWidths=[17 * cm])
     rank_tbl.setStyle(TableStyle([
         ('FONTNAME',      (0, 0), (-1, -1), F),
-        ('FONTSIZE',      (0, 0), (-1, -1), 96),
+        ('FONTSIZE',      (0, 0), (-1, -1), 70),
+        ('LEADING',       (0, 0), (-1, -1), 80),
         ('TEXTCOLOR',     (0, 0), (-1, -1), rank_color),
         ('BACKGROUND',    (0, 0), (-1, -1), rank_bg),
         ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
-        ('TOPPADDING',    (0, 0), (-1, -1), 18),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 18),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING',    (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
         ('BOX',           (0, 0), (-1, -1), 2, rank_color),
     ]))
     story.append(rank_tbl)

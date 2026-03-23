@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー | 土地造成リスク診断サービス</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #1A237E;
+      --accent:    #1565C0;
+      --bg:        #F4F6FB;
+      --card:      #FFFFFF;
+      --border:    #E0E0E0;
+      --text:      #212121;
+      --muted:     #757575;
+      --radius:    10px;
+      --shadow:    0 4px 24px rgba(0,0,0,.10);
+    }
+    body { font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+           background: var(--bg); color: var(--text); line-height: 1.8; }
+
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 0 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center;
+      height: 60px;
+    }
+    .brand { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+    .brand a { color: #fff; text-decoration: none; }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 24px 60px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 12px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+      padding-left: 10px;
+      border-left: 4px solid var(--primary);
+    }
+
+    p { font-size: 14px; margin-bottom: 10px; }
+    ul { font-size: 14px; padding-left: 20px; margin-bottom: 10px; }
+    ul li { margin-bottom: 6px; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .note {
+      margin-top: 32px;
+      background: #FFF8E1;
+      border-left: 4px solid #F9A825;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    footer {
+      background: var(--primary); color: rgba(255,255,255,.75);
+      text-align: center; padding: 20px; font-size: 12px;
+    }
+    footer a { color: rgba(255,255,255,.85); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand"><a href="/">土地造成リスク診断サービス</a></div>
+  </div>
+</header>
+
+<div class="container">
+  <h1>プライバシーポリシー</h1>
+
+  <div class="card">
+    <h2>1. 事業者情報</h2>
+    <p>
+      屋号：DELTA TECH（運営者：関根 寛人）<br>
+      メール：<a href="mailto:deltatech666@gmail.com">deltatech666@gmail.com</a>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>2. 収集する個人情報</h2>
+    <p>当サービスでは、以下の情報をお申し込み時に収集します。</p>
+    <ul>
+      <li>お名前</li>
+      <li>メールアドレス</li>
+      <li>診断対象の土地住所・敷地面積・利用用途</li>
+    </ul>
+    <p>クレジットカード情報は当サービスでは収集・保存しません。決済はStripe, Inc.が安全に処理します。</p>
+  </div>
+
+  <div class="card">
+    <h2>3. 利用目的</h2>
+    <ul>
+      <li>土地造成リスク診断レポートの作成・送付</li>
+      <li>ご注文内容の管理および問い合わせ対応</li>
+      <li>サービス改善に向けた統計的分析（個人を特定しない形で利用）</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>4. 第三者への提供</h2>
+    <p>収集した個人情報は、以下の場合を除き第三者へ提供しません。</p>
+    <ul>
+      <li>法令に基づく開示が必要な場合</li>
+      <li>決済処理のためにStripe, Inc.へ必要情報を提供する場合</li>
+      <li>レポート送付のためにTwilio SendGridへメールアドレスを提供する場合</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>5. 利用する外部サービス</h2>
+    <p><strong>Stripe, Inc.</strong>（決済処理）</p>
+    <p>クレジットカード決済の処理にStripeを使用します。カード情報はStripeのサーバーで管理され、当サービスには保存されません。<br>
+    詳細：<a href="https://stripe.com/jp/privacy" target="_blank" rel="noopener">Stripeプライバシーポリシー</a></p>
+
+    <p style="margin-top:16px;"><strong>Twilio SendGrid</strong>（メール送信）</p>
+    <p>レポートのメール送付にSendGridを使用します。送信のためメールアドレスをSendGridに提供します。<br>
+    詳細：<a href="https://www.twilio.com/en-us/legal/privacy" target="_blank" rel="noopener">SendGridプライバシーポリシー</a></p>
+  </div>
+
+  <div class="card">
+    <h2>6. 保存期間・管理</h2>
+    <p>収集した個人情報はサービス提供に必要な期間保存し、不要となった時点で適切に削除します。
+    情報は適切なセキュリティ対策のもとで管理します。</p>
+  </div>
+
+  <div class="card">
+    <h2>7. 開示・訂正・削除のご要望</h2>
+    <p>ご自身の個人情報の開示・訂正・削除をご希望の場合は、下記メールアドレスまでご連絡ください。</p>
+    <p><a href="mailto:deltatech666@gmail.com">deltatech666@gmail.com</a></p>
+  </div>
+
+  <div class="card">
+    <h2>8. Cookie・アクセス解析</h2>
+    <p>現在、当サービスではCookieおよびアクセス解析ツールは使用していません。</p>
+  </div>
+
+  <div class="note">
+    本ポリシーは必要に応じて改定することがあります。改定した場合はこのページに掲載します。<br>
+    制定日：2026年3月
+  </div>
+</div>
+
+<footer>
+  <p style="margin-bottom:8px;">
+    <a href="/">トップページへ戻る</a>
+    <span style="color:rgba(255,255,255,.4); margin:0 8px;">|</span>
+    <a href="/tokutei">特定商取引法に基づく表記</a>
+    <span style="color:rgba(255,255,255,.4); margin:0 8px;">|</span>
+    <a href="/privacy">プライバシーポリシー</a>
+  </p>
+  <p>© 2026 土地造成リスク診断サービス</p>
+</footer>
+
+</body>
+</html>

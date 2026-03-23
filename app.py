@@ -1221,6 +1221,11 @@ def tokutei():
     return render_template('tokutei.html')
 
 
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+
 @app.route('/api/submit', methods=['POST'])
 def submit_form():
     """フォーム送信 → Stripe Checkoutセッション作成"""

@@ -49,58 +49,214 @@
     .hero {
       position: relative;
       overflow: hidden;
-      background: #0a0e27;
-      color: #fff; text-align: center; padding: 52px 24px 48px;
+      background: #060a1e;
+      color: #fff; text-align: center; padding: 70px 24px 64px;
     }
-    /* 宇宙ブルー → ネイビーのグラデーション層 */
+
+    /* ── 造成地・空撮風CSS背景 ── */
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      /* 造成地の土壌色・地形の起伏をグラデーションで再現 */
+      background:
+        /* 地面の起伏パッチ（明暗で地形の凹凸） */
+        radial-gradient(ellipse 55% 40% at 20% 30%,  rgba(170,125,65,0.55) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 50% at 80% 55%,  rgba(105,78,42,0.50) 0%, transparent 65%),
+        radial-gradient(ellipse 35% 30% at 55% 15%,  rgba(190,148,90,0.40) 0%, transparent 65%),
+        radial-gradient(ellipse 45% 35% at 10% 75%,  rgba(88,62,30,0.50)  0%, transparent 65%),
+        radial-gradient(ellipse 38% 28% at 88% 20%,  rgba(148,108,55,0.45) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 60% 80%,  rgba(75,55,25,0.45)  0%, transparent 65%),
+        /* 造成区画の輪郭線（薄いストライプで切土・盛土ラインを暗示） */
+        repeating-linear-gradient(
+          108deg,
+          transparent 0px, transparent 28px,
+          rgba(200,155,80,0.06) 29px, transparent 30px,
+          transparent 68px,
+          rgba(200,155,80,0.04) 69px, transparent 70px
+        ),
+        repeating-linear-gradient(
+          22deg,
+          transparent 0px, transparent 40px,
+          rgba(160,120,60,0.05) 41px, transparent 42px
+        ),
+        /* ベースの土色グラデーション */
+        linear-gradient(155deg,
+          #4a2e0e 0%,
+          #6b4520 12%,
+          #8a5c2e 25%,
+          #7a5228 38%,
+          #5e3d1a 52%,
+          #4a3015 65%,
+          #3c2610 78%,
+          #2a1a08 100%
+        );
+    }
+
+    /* 等高線風リングオーバーレイ（地形輪郭の演出） */
+    .hero-topo {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background:
+        repeating-radial-gradient(
+          ellipse 60% 45% at 30% 55%,
+          transparent 0px, transparent 24px,
+          rgba(210,170,90,0.07) 25px, transparent 26px,
+          transparent 49px,
+          rgba(210,170,90,0.05) 50px, transparent 51px,
+          transparent 74px,
+          rgba(210,170,90,0.04) 75px, transparent 76px
+        ),
+        repeating-radial-gradient(
+          ellipse 50% 40% at 72% 38%,
+          transparent 0px, transparent 20px,
+          rgba(180,140,70,0.06) 21px, transparent 22px,
+          transparent 41px,
+          rgba(180,140,70,0.04) 42px, transparent 43px
+        );
+    }
+
+    /* 濃紺〜青紫グラデーション オーバーレイ (opacity 0.75) */
     .hero::before {
       content: "";
       position: absolute; inset: 0;
-      background: linear-gradient(135deg, #0a0e27 0%, #0d1b4b 45%, #1a237e 100%);
-      z-index: 0;
+      background: linear-gradient(140deg,
+        rgba(5,8,28,0.80)   0%,
+        rgba(12,18,62,0.76) 30%,
+        rgba(22,10,65,0.75) 55%,
+        rgba(30,15,80,0.76) 75%,
+        rgba(10,5,40,0.82)  100%);
+      z-index: 2;
     }
-    /* 測量グリッド線 */
+
+    /* 測量グリッド線 (opacity 0.15) */
     .hero::after {
       content: "";
       position: absolute; inset: 0;
       background-image:
-        linear-gradient(rgba(100,149,237,.10) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(100,149,237,.10) 1px, transparent 1px);
-      background-size: 48px 48px;
-      z-index: 1;
+        linear-gradient(rgba(0,200,255,.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,.15) 1px, transparent 1px);
+      background-size: 52px 52px;
+      z-index: 3;
     }
-    /* 浮遊する測量ポイント（星） */
-    .hero-stars {
+
+    /* スキャンライン：上から下にゆっくり流れる輝線 */
+    .hero-scanline {
+      position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(0,220,255,.04) 8%,
+        rgba(0,220,255,.80) 35%,
+        rgba(160,240,255,.98) 50%,
+        rgba(0,220,255,.80) 65%,
+        rgba(0,220,255,.04) 92%,
+        transparent 100%);
+      box-shadow:
+        0 0 8px  2px rgba(0,220,255,.60),
+        0 0 20px 4px rgba(0,220,255,.28),
+        0 0 40px 6px rgba(0,180,255,.12);
+      animation: scanline 6s linear infinite;
+      z-index: 4; pointer-events: none;
+    }
+    @keyframes scanline {
+      0%   { top: -4px;  opacity: 0; }
+      4%   { opacity: 1; }
+      96%  { opacity: 1; }
+      100% { top: 100%;  opacity: 0; }
+    }
+
+    /* 座標ポイント（＋マーク）フェードイン・アウト */
+    .hero-coords {
       position: absolute; inset: 0;
-      z-index: 2; overflow: hidden; pointer-events: none;
+      z-index: 4; overflow: hidden; pointer-events: none;
     }
-    .hero-stars span {
+    .hero-coords span {
       position: absolute;
       display: block;
-      border-radius: 50%;
-      background: rgba(255,255,255,.75);
-      animation: float linear infinite;
+      color: rgba(0,215,255,.85);
+      font-family: 'Courier New', monospace;
+      font-size: 12px; line-height: 1; font-weight: 700;
+      animation: coordFade linear infinite;
+      text-shadow: 0 0 6px rgba(0,215,255,.7), 0 0 14px rgba(0,215,255,.35);
     }
-    @keyframes float {
-      0%   { transform: translateY(0)   scale(1);   opacity: .8; }
-      50%  { transform: translateY(-18px) scale(1.2); opacity: 1;  }
-      100% { transform: translateY(0)   scale(1);   opacity: .8; }
+    .hero-coords span.sm { font-size: 10px; color: rgba(0,215,255,.60); }
+    @keyframes coordFade {
+      0%,100% { opacity: 0; transform: scale(.75); }
+      18%,82% { opacity: 1; transform: scale(1);   }
     }
-    /* コンテンツをグリッド・星より前面に */
-    .hero-content {
-      position: relative; z-index: 3;
+
+    /* 座標数値テキスト（左上・右下） */
+    .hero-corner {
+      position: absolute;
+      font-family: 'Courier New', monospace;
+      font-size: 11px; line-height: 2.0;
+      color: rgba(0,210,255,.42);
+      z-index: 6; pointer-events: none;
+      letter-spacing: .6px;
+      text-shadow: 0 0 12px rgba(0,200,255,.25);
     }
-    .hero h1 { font-size: clamp(22px, 4vw, 34px); font-weight: 700;
-               line-height: 1.4; margin-bottom: 12px;
-               text-shadow: 0 2px 16px rgba(0,0,0,.45); }
-    .hero p  { font-size: 15px; opacity: .9; max-width: 560px; margin: 0 auto 28px;
-               text-shadow: 0 1px 6px rgba(0,0,0,.35); }
-    .hero-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .hero-corner--tl { top: 20px; left: 24px; text-align: left; }
+    .hero-corner--br { bottom: 20px; right: 24px; text-align: right; }
+    .hero-corner .val {
+      color: rgba(100,230,255,.65);
+      text-shadow: 0 0 10px rgba(0,220,255,.4);
+    }
+    .hero-corner .blink { animation: blink 1.2s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* コーナーブラケット装飾 */
+    .hero-bracket {
+      position: absolute; z-index: 6; pointer-events: none;
+      width: 28px; height: 28px;
+    }
+    .hero-bracket--tl { top: 14px; left: 14px;
+      border-top: 1.5px solid rgba(0,210,255,.5);
+      border-left: 1.5px solid rgba(0,210,255,.5); }
+    .hero-bracket--tr { top: 14px; right: 14px;
+      border-top: 1.5px solid rgba(0,210,255,.5);
+      border-right: 1.5px solid rgba(0,210,255,.5); }
+    .hero-bracket--bl { bottom: 14px; left: 14px;
+      border-bottom: 1.5px solid rgba(0,210,255,.5);
+      border-left: 1.5px solid rgba(0,210,255,.5); }
+    .hero-bracket--br { bottom: 14px; right: 14px;
+      border-bottom: 1.5px solid rgba(0,210,255,.5);
+      border-right: 1.5px solid rgba(0,210,255,.5); }
+
+    /* コンテンツを最前面に */
+    .hero-content { position: relative; z-index: 7; }
+
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 36px); font-weight: 700;
+      line-height: 1.48; margin-bottom: 16px;
+      text-shadow: 0 2px 24px rgba(0,0,0,.65), 0 0 48px rgba(0,140,255,.18);
+    }
+    .hero p  {
+      font-size: 15px; opacity: .88; max-width: 560px; margin: 0 auto 30px;
+      text-shadow: 0 1px 8px rgba(0,0,0,.45);
+    }
+    .hero-badges {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .hero-badges + .hero-badges { margin-bottom: 0; }
     .badge {
-      background: rgba(255,255,255,.13); border: 1px solid rgba(100,149,237,.55);
-      color: #fff; font-size: 13px; padding: 5px 14px; border-radius: 20px;
-      backdrop-filter: blur(4px);
-      box-shadow: 0 0 8px rgba(100,149,237,.25);
+      background: rgba(0,15,50,.60); border: 1px solid rgba(0,200,255,.50);
+      color: #fff; font-size: 13px; padding: 6px 16px; border-radius: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 10px rgba(0,200,255,.18), inset 0 0 10px rgba(0,200,255,.06);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .badge:hover {
+      border-color: rgba(0,210,255,.9);
+      box-shadow: 0 0 18px rgba(0,210,255,.45);
+    }
+    .badge-sci {
+      background: rgba(25,0,55,.60); border: 1px solid rgba(150,90,255,.55);
+      color: #ead8ff; font-size: 12px; padding: 5px 14px; border-radius: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 10px rgba(140,80,255,.22), inset 0 0 8px rgba(140,80,255,.06);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .badge-sci:hover {
+      border-color: rgba(180,120,255,.9);
+      box-shadow: 0 0 18px rgba(160,100,255,.40);
     }
 
     /* ── フロー ── */
@@ -253,20 +409,46 @@
 
 <!-- ヒーロー -->
 <div class="hero">
-  <!-- 浮遊する測量ポイント（星） -->
-  <div class="hero-stars" aria-hidden="true">
-    <span style="width:3px;height:3px;top:12%;left:8%;animation-duration:4.2s;animation-delay:0s"></span>
-    <span style="width:2px;height:2px;top:25%;left:20%;animation-duration:5.8s;animation-delay:.7s"></span>
-    <span style="width:4px;height:4px;top:60%;left:15%;animation-duration:3.9s;animation-delay:1.1s"></span>
-    <span style="width:2px;height:2px;top:80%;left:30%;animation-duration:6.5s;animation-delay:.3s"></span>
-    <span style="width:3px;height:3px;top:18%;left:45%;animation-duration:4.7s;animation-delay:2.0s"></span>
-    <span style="width:2px;height:2px;top:72%;left:52%;animation-duration:5.1s;animation-delay:.5s"></span>
-    <span style="width:4px;height:4px;top:35%;left:65%;animation-duration:3.6s;animation-delay:1.4s"></span>
-    <span style="width:2px;height:2px;top:55%;left:75%;animation-duration:6.2s;animation-delay:.9s"></span>
-    <span style="width:3px;height:3px;top:15%;left:82%;animation-duration:4.4s;animation-delay:1.8s"></span>
-    <span style="width:2px;height:2px;top:88%;left:90%;animation-duration:5.5s;animation-delay:.2s"></span>
-    <span style="width:3px;height:3px;top:42%;left:92%;animation-duration:4.0s;animation-delay:2.5s"></span>
-    <span style="width:2px;height:2px;top:65%;left:5%;animation-duration:5.9s;animation-delay:1.6s"></span>
+  <!-- 造成地・空撮風CSS背景 -->
+  <div class="hero-bg" aria-hidden="true"></div>
+  <!-- 等高線風トポグラフィオーバーレイ -->
+  <div class="hero-topo" aria-hidden="true"></div>
+  <!-- スキャンライン -->
+  <div class="hero-scanline" aria-hidden="true"></div>
+  <!-- 座標ポイント（＋マーク）15点 -->
+  <div class="hero-coords" aria-hidden="true">
+    <span style="top:14%;left:7%;animation-duration:4.4s;animation-delay:0s">+</span>
+    <span style="top:28%;left:19%;animation-duration:6.2s;animation-delay:.9s">+</span>
+    <span style="top:63%;left:12%;animation-duration:3.9s;animation-delay:1.4s">+</span>
+    <span style="top:79%;left:27%;animation-duration:5.6s;animation-delay:.5s">+</span>
+    <span style="top:20%;left:43%;animation-duration:5.0s;animation-delay:2.2s">+</span>
+    <span style="top:71%;left:50%;animation-duration:5.4s;animation-delay:.7s">+</span>
+    <span style="top:34%;left:65%;animation-duration:3.8s;animation-delay:1.6s">+</span>
+    <span style="top:54%;left:73%;animation-duration:6.5s;animation-delay:1.1s">+</span>
+    <span style="top:16%;left:84%;animation-duration:4.7s;animation-delay:2.0s">+</span>
+    <span style="top:87%;left:88%;animation-duration:5.8s;animation-delay:.3s">+</span>
+    <span style="top:45%;left:92%;animation-duration:4.2s;animation-delay:2.7s">+</span>
+    <span class="sm" style="top:68%;left:5%;animation-duration:6.1s;animation-delay:1.8s">+</span>
+    <span class="sm" style="top:41%;left:34%;animation-duration:5.3s;animation-delay:3.2s">+</span>
+    <span class="sm" style="top:9%;left:57%;animation-duration:4.5s;animation-delay:.8s">+</span>
+    <span class="sm" style="top:92%;left:41%;animation-duration:5.9s;animation-delay:2.3s">+</span>
+  </div>
+  <!-- コーナーブラケット（フレーム演出） -->
+  <div class="hero-bracket hero-bracket--tl" aria-hidden="true"></div>
+  <div class="hero-bracket hero-bracket--tr" aria-hidden="true"></div>
+  <div class="hero-bracket hero-bracket--bl" aria-hidden="true"></div>
+  <div class="hero-bracket hero-bracket--br" aria-hidden="true"></div>
+  <!-- 座標数値テキスト（左上） -->
+  <div class="hero-corner hero-corner--tl" aria-hidden="true">
+    N <span class="val">35.681°</span> E <span class="val">139.767°</span><br>
+    ALT: <span class="val">290.6m</span><br>
+    SCAN: <span class="val">94%</span><span class="blink">▌</span>
+  </div>
+  <!-- 座標数値テキスト（右下） -->
+  <div class="hero-corner hero-corner--br" aria-hidden="true">
+    RES: <span class="val">0.5m/px</span><br>
+    GRID: <span class="val">52×52</span><br>
+    SYS: <span class="val">ONLINE</span><span class="blink">■</span>
   </div>
   <!-- コンテンツ -->
   <div class="hero-content">
@@ -278,6 +460,11 @@
       <span class="badge">🌊 ハザードマップ連携</span>
       <span class="badge">🏗 造成費概算</span>
       <span class="badge">📄 PDFレポート</span>
+    </div>
+    <div class="hero-badges" style="margin-top:12px">
+      <span class="badge badge-sci">🛰️ 衛星データ解析</span>
+      <span class="badge badge-sci">📡 リアルタイム地盤情報</span>
+      <span class="badge badge-sci">🗾 国交省データ連携</span>
     </div>
   </div>
 </div>

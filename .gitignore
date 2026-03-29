@@ -9,8 +9,8 @@
 # 生成されたレポートPDF
 reports/
 
-# ダウンロードしたフォント（render.yamlのbuildCommandで取得）
-fonts/
+# フォントディレクトリ（fontsフォルダはリポジトリに含める）
+# fonts/
 
 # Python
 __pycache__/
@@ -40,3 +40,6 @@ desktop.ini
 
 # ログ
 *.log
+
+# Claude Code
+.claude/

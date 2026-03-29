@@ -115,6 +115,37 @@ def init_db():
             db.execute('ALTER TABLE orders ADD COLUMN site_area REAL')
             db.commit()
 
+        # 無料簡易診断テーブル
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS free_checks (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at          TEXT    DEFAULT (datetime('now', 'localtime')),
+                prefecture          TEXT,
+                city_address        TEXT,
+                address             TEXT    NOT NULL,
+                land_use            TEXT,
+                site_area           REAL,
+                email               TEXT,
+                latitude            REAL,
+                longitude           REAL,
+                elevation           REAL,
+                elevation_diff      REAL,
+                soil_amplification  REAL,
+                flood_depth         REAL,
+                landslide_risk      INTEGER,
+                overall_rank        TEXT,
+                total_score         INTEGER,
+                score_terrain       INTEGER,
+                score_soil          INTEGER,
+                score_disaster      INTEGER,
+                score_regulation    INTEGER,
+                score_cost          INTEGER,
+                converted_to_paid   INTEGER DEFAULT 0,
+                followup_sent       INTEGER DEFAULT 0
+            )
+        ''')
+        db.commit()
+
 
 # gunicorn（Render等）でも起動時にテーブルを作成する
 init_db()
@@ -1212,6 +1243,10 @@ def send_report_email(to_email: str, to_name: str,
 # ============================================================
 @app.route('/')
 def index():
+    # 無料診断からの遷移：セッションにcheck_idを保存
+    from_free = request.args.get('from_free', '')
+    if from_free and from_free.isdigit():
+        session['from_free_check_id'] = int(from_free)
     return render_template('index.html',
                            stripe_publishable_key=STRIPE_PUBLISHABLE_KEY)
 
@@ -1358,6 +1393,19 @@ def payment_success():
             db.commit()
             order_id = cur.lastrowid
 
+        # 無料診断からの有料転換を記録
+        free_check_id = session.pop('from_free_check_id', None)
+        if free_check_id:
+            try:
+                with get_db() as db:
+                    db.execute(
+                        'UPDATE free_checks SET converted_to_paid = 1 WHERE id = ?',
+                        (free_check_id,)
+                    )
+                    db.commit()
+            except Exception:
+                pass
+
         return render_template('success.html',
                                order_id=order_id,
                                name=meta.get('requester_name', ''))
@@ -1397,6 +1445,197 @@ def stripe_webhook():
 
 
 # ============================================================
+# 10.5 Free Check (無料簡易診断) Routes & Email
+# ============================================================
+def send_followup_email(check: dict, base_url: str = '') -> bool:
+    """無料診断から3日後のフォローアップメール送信"""
+    if not SENDGRID_API_KEY or not check.get('email'):
+        return False
+
+    rank       = check.get('overall_rank', '—')
+    address    = check.get('address', '不明')
+    rank_labels = {'A': '優良', 'B': '良好', 'C': '要注意', 'D': '高リスク'}
+    rank_colors = {'A': '#1B5E20', 'B': '#1565C0', 'C': '#E65100', 'D': '#B71C1C'}
+    rank_label  = rank_labels.get(rank, '—')
+    rank_color  = rank_colors.get(rank, '#555555')
+    purchase_url = f'{base_url}#form' if base_url else '#form'
+
+    html_content = f"""
+<div style="font-family:Meiryo,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+  <div style="background:#1A237E;color:#fff;padding:20px 24px;border-radius:8px 8px 0 0;">
+    <h2 style="margin:0;font-size:20px;">🏔 土地造成リスク診断サービス</h2>
+    <p style="margin:6px 0 0;opacity:.85;font-size:13px;">無料簡易診断 フォローアップ</p>
+  </div>
+  <div style="background:#fff;border:1px solid #E0E0E0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <p>先日は土地造成リスク無料簡易診断をご利用いただきありがとうございました。</p>
+    <div style="background:#F4F6FB;border-radius:8px;padding:20px;margin:20px 0;border-left:4px solid {rank_color};">
+      <p style="margin:0 0 6px;color:#666;font-size:13px;">診断住所</p>
+      <p style="margin:0 0 12px;font-size:15px;font-weight:bold;">{address}</p>
+      <p style="margin:0 0 4px;color:#666;font-size:13px;">総合リスク評価</p>
+      <p style="margin:0;font-size:36px;font-weight:bold;color:{rank_color};">{rank}
+        <span style="font-size:18px;"> — {rank_label}</span>
+      </p>
+    </div>
+    <p>無料診断では概要のみをお伝えしました。<br>詳細レポートでは以下の情報をご確認いただけます：</p>
+    <ul style="color:#333;line-height:2.2;">
+      <li>✅ 標高差・地形の詳細数値</li>
+      <li>✅ 地盤増幅率・液状化リスク</li>
+      <li>✅ 浸水深・土砂災害区域の詳細</li>
+      <li>✅ 造成費概算（面積別試算表）</li>
+      <li>✅ 法規制チェックリスト</li>
+      <li>✅ レーダーチャート</li>
+      <li>✅ 専門家による推奨アクション</li>
+    </ul>
+    <div style="text-align:center;margin:28px 0 20px;">
+      <a href="{purchase_url}"
+         style="background:#1A237E;color:#fff;padding:16px 36px;border-radius:8px;
+                text-decoration:none;font-size:16px;font-weight:bold;display:inline-block;">
+        詳細レポートを購入する ¥30,000
+      </a>
+    </div>
+    <p style="color:#999;font-size:12px;text-align:center;">
+      このメールは土地造成リスク診断サービスからお送りしています。<br>
+      ご不明な点は <a href="mailto:{FROM_EMAIL}" style="color:#1565C0;">{FROM_EMAIL}</a> までお問い合わせください。
+    </p>
+  </div>
+</div>
+"""
+    try:
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=check['email'],
+            subject='無料診断の結果はいかがでしたか？',
+            html_content=html_content
+        )
+        sg.send(message)
+        print(f'フォローアップメール送信成功: check_id={check["id"]}, email={check["email"]}')
+        return True
+    except Exception as e:
+        print(f'フォローアップメール送信エラー: {e}')
+        if hasattr(e, 'body'):
+            print(f'SendGrid エラー詳細: {e.body}')
+        return False
+
+
+def check_and_send_followup_emails(base_url: str = '') -> int:
+    """期限（3日後）が来たフォローアップメールを自動送信。送信数を返す。"""
+    sent_count = 0
+    try:
+        with get_db() as db:
+            pending = db.execute('''
+                SELECT * FROM free_checks
+                WHERE email IS NOT NULL AND email != ''
+                  AND followup_sent = 0
+                  AND datetime(created_at) <= datetime('now', 'localtime', '-3 days')
+            ''').fetchall()
+
+        for row in pending:
+            check = dict(row)
+            if send_followup_email(check, base_url):
+                with get_db() as db:
+                    db.execute(
+                        'UPDATE free_checks SET followup_sent = 1 WHERE id = ?',
+                        (check['id'],)
+                    )
+                    db.commit()
+                sent_count += 1
+    except Exception as e:
+        print(f'フォローアップメール処理エラー: {e}')
+    return sent_count
+
+
+@app.route('/free-check')
+def free_check_page():
+    return render_template('free_check.html')
+
+
+@app.route('/api/free-check', methods=['POST'])
+def api_free_check():
+    """無料簡易診断フォーム処理"""
+    data = request.get_json(force=True)
+
+    prefecture   = data.get('prefecture', '').strip()
+    city_address = data.get('city_address', '').strip()
+    land_use     = data.get('land_use', '住宅').strip()
+    email        = data.get('email', '').strip()
+
+    if not prefecture:
+        return jsonify({'error': '都道府県を選択してください'}), 400
+    if not city_address:
+        return jsonify({'error': '市区町村・番地を入力してください'}), 400
+
+    try:
+        site_area = float(data.get('site_area') or 0)
+    except (ValueError, TypeError):
+        site_area = 0.0
+
+    address  = prefecture + city_address
+    radius_m = calc_radius_from_area(site_area) if site_area > 0 else 500.0
+
+    try:
+        geo            = geocode_address(address)
+        lat, lon       = geo.get('lat'), geo.get('lon')
+        elevation      = get_elevation(lon, lat)                 if lat and lon else None
+        elevation_diff = get_elevation_diff(lon, lat, radius_m) if lat and lon else 1.0
+        jshis          = get_jshis_data(lon, lat)               if lat and lon else {}
+        soil_amp       = jshis.get('amplification', 1.5)
+        hazard         = get_hazard_data(lon, lat)              if lat and lon else {}
+        flood_depth    = hazard.get('flood_depth', 0)
+        landslide      = hazard.get('landslide', 0)
+
+        assessment = assess_risk(elevation_diff, soil_amp, flood_depth, landslide, land_use)
+
+        with get_db() as db:
+            cur = db.execute('''
+                INSERT INTO free_checks (
+                    prefecture, city_address, address, land_use, site_area, email,
+                    latitude, longitude, elevation, elevation_diff,
+                    soil_amplification, flood_depth, landslide_risk,
+                    overall_rank, total_score,
+                    score_terrain, score_soil, score_disaster,
+                    score_regulation, score_cost
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ''', (
+                prefecture, city_address, address, land_use,
+                site_area if site_area > 0 else None,
+                email if email else None,
+                lat, lon, elevation, elevation_diff,
+                soil_amp, flood_depth, landslide,
+                assessment['overall_rank'], assessment['total_score'],
+                assessment['score_terrain'], assessment['score_soil'],
+                assessment['score_disaster'], assessment['score_regulation'],
+                assessment['score_cost']
+            ))
+            db.commit()
+            check_id = cur.lastrowid
+
+        return jsonify({'check_id': check_id})
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': f'診断処理中にエラーが発生しました: {str(e)}'}), 500
+
+
+@app.route('/free-result')
+def free_result_page():
+    check_id = request.args.get('id', '')
+    if not check_id:
+        return redirect('/free-check')
+    try:
+        with get_db() as db:
+            row = db.execute(
+                'SELECT * FROM free_checks WHERE id = ?', (check_id,)
+            ).fetchone()
+        if not row:
+            return redirect('/free-check')
+        return render_template('free_result.html', check=dict(row))
+    except Exception:
+        traceback.print_exc()
+        return redirect('/free-check')
+
+
+# ============================================================
 # 11. Admin Routes
 # ============================================================
 def is_admin():
@@ -1423,10 +1662,26 @@ def admin_logout():
 def admin_panel():
     if not is_admin():
         return redirect('/admin/login')
+
+    # 期限が来たフォローアップメールを自動送信
+    check_and_send_followup_emails(base_url=request.host_url)
+
     with get_db() as db:
-        orders = db.execute(
-            'SELECT * FROM orders ORDER BY created_at DESC').fetchall()
-    return render_template('admin.html', orders=[dict(o) for o in orders])
+        orders      = db.execute('SELECT * FROM orders ORDER BY created_at DESC').fetchall()
+        free_checks = db.execute('SELECT * FROM free_checks ORDER BY created_at DESC').fetchall()
+
+    free_checks_list = [dict(f) for f in free_checks]
+    today            = datetime.now().strftime('%Y-%m-%d')
+    free_today       = sum(1 for f in free_checks_list if (f.get('created_at') or '').startswith(today))
+    free_total       = len(free_checks_list)
+    free_converted   = sum(1 for f in free_checks_list if f.get('converted_to_paid'))
+
+    return render_template('admin.html',
+                           orders=[dict(o) for o in orders],
+                           free_checks=free_checks_list,
+                           free_today=free_today,
+                           free_total=free_total,
+                           free_converted=free_converted)
 
 
 @app.route('/admin/approve/<int:order_id>', methods=['POST'])
@@ -1514,4 +1769,4 @@ if __name__ == '__main__':
     print('  URL     : http://localhost:5000')
     print('  Admin   : http://localhost:5000/admin')
     print('=' * 50)
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5000)

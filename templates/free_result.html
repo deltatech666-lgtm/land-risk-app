@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>無料診断結果 | 土地造成リスク診断サービス</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #1A237E;
+      --accent:    #FF6F00;
+      --green:     #2E7D32;
+      --red:       #C62828;
+      --orange:    #E65100;
+      --bg:        #F4F6FB;
+      --card:      #FFFFFF;
+      --border:    #E0E0E0;
+      --text:      #212121;
+      --muted:     #757575;
+      --radius:    10px;
+      --shadow:    0 4px 24px rgba(0,0,0,.10);
+    }
+    body { font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+           background: var(--bg); color: var(--text); line-height: 1.7; }
+
+    /* ── ヘッダー ── */
+    header {
+      background: var(--primary); color: #fff;
+      padding: 0 24px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .brand { font-size: 17px; font-weight: 700; }
+    .brand a { color: #fff; text-decoration: none; }
+    .brand span { font-size: 11px; font-weight: 400; margin-left: 10px; opacity: .8; }
+    .header-free-badge {
+      background: linear-gradient(135deg,#FF6F00,#FF8F00);
+      color: #fff; font-size: 13px; font-weight: 700;
+      padding: 6px 18px; border-radius: 20px;
+    }
+
+    /* ── メイン ── */
+    .main { max-width: 720px; margin: 0 auto; padding: 32px 16px 60px; }
+
+    /* ── 結果タイトルバー ── */
+    .result-header {
+      background: linear-gradient(140deg, #0d1060 0%, #1A237E 100%);
+      color: #fff; border-radius: var(--radius) var(--radius) 0 0;
+      padding: 24px 28px; border-bottom: 3px solid #FFD54F;
+    }
+    .result-header-label {
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      color: #FFD54F; margin-bottom: 6px; opacity: .9;
+    }
+    .result-address {
+      font-size: 16px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── 総合スコアカード ── */
+    .score-card {
+      background: var(--card); border-radius: 0 0 var(--radius) var(--radius);
+      box-shadow: var(--shadow); padding: 28px 28px 24px;
+      margin-bottom: 20px;
+    }
+    .score-main {
+      display: flex; align-items: center; gap: 24px; margin-bottom: 24px;
+    }
+    .rank-circle {
+      width: 96px; height: 96px; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-weight: 700; flex-shrink: 0; border: 4px solid currentColor;
+    }
+    .rank-letter { font-size: 44px; line-height: 1; }
+    .rank-sublabel { font-size: 10px; margin-top: 2px; opacity: .8; }
+    .rank-A { color: #1B5E20; background: #E8F5E9; }
+    .rank-B { color: #1565C0; background: #E3F2FD; }
+    .rank-C { color: #E65100; background: #FFF3E0; }
+    .rank-D { color: #B71C1C; background: #FFEBEE; }
+    .score-detail { flex: 1; }
+    .score-label { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .score-desc  { font-size: 13px; color: var(--muted); }
+    .score-num   { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0 0 20px; }
+
+    /* ── スコアサマリー ── */
+    .summary-title {
+      font-size: 13px; font-weight: 700; color: var(--muted);
+      letter-spacing: .5px; margin-bottom: 12px;
+    }
+    .score-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 0; border-bottom: 1px solid #F0F0F0;
+    }
+    .score-row:last-child { border-bottom: none; }
+    .score-row-label { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .score-row-label .cat-icon { font-size: 18px; width: 26px; text-align: center; }
+    .status-badge {
+      font-size: 13px; font-weight: 700;
+      padding: 4px 12px; border-radius: 16px;
+      white-space: nowrap;
+    }
+    .status-good    { background: #E8F5E9; color: #2E7D32; }
+    .status-caution { background: #FFF3E0; color: #E65100; }
+    .status-danger  { background: #FFEBEE; color: #C62828; }
+
+    /* ── ロック済み詳細エリア ── */
+    .locked-section {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 20px;
+      overflow: hidden; position: relative;
+    }
+    .locked-header {
+      background: #F5F5F5; border-bottom: 1px solid var(--border);
+      padding: 14px 20px; font-size: 14px; font-weight: 700; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .locked-body {
+      padding: 16px 20px;
+      filter: blur(4px) brightness(.85);
+      user-select: none; pointer-events: none;
+      position: relative;
+    }
+    .locked-dummy-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid #F0F0F0; font-size: 13px;
+    }
+    .locked-dummy-bar {
+      height: 10px; border-radius: 5px; background: #CFD8DC; display: inline-block;
+    }
+    .locked-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(255,255,255,.55); backdrop-filter: blur(2px);
+      gap: 8px; z-index: 1;
+    }
+    .lock-icon { font-size: 32px; }
+    .lock-text { font-size: 13px; color: var(--muted); font-weight: 600; text-align: center; }
+
+    /* ── 有料誘導バナー ── */
+    .cta-banner {
+      background: linear-gradient(135deg, #1A237E 0%, #283593 60%, #0D47A1 100%);
+      border-radius: var(--radius);
+      box-shadow: 0 6px 32px rgba(26,35,126,.35);
+      padding: 32px 28px 28px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .cta-warning {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,235,59,.15); border: 1px solid rgba(255,235,59,.4);
+      color: #FFD54F; font-size: 12px; font-weight: 700;
+      padding: 4px 12px; border-radius: 12px; margin-bottom: 14px;
+    }
+    .cta-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
+    .cta-desc  { font-size: 13px; opacity: .88; margin-bottom: 20px; line-height: 1.6; }
+    .cta-features {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+      margin-bottom: 24px;
+    }
+    .cta-feature {
+      background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px; padding: 8px 12px;
+      font-size: 12px; display: flex; align-items: center; gap: 6px;
+    }
+    .cta-feature .ck { color: #A5D6A7; font-size: 14px; flex-shrink: 0; }
+    .cta-btn {
+      display: block; width: 100%;
+      background: linear-gradient(135deg, #FF6F00 0%, #FF8F00 100%);
+      color: #fff; text-decoration: none; text-align: center;
+      padding: 18px; border-radius: 10px;
+      font-size: 18px; font-weight: 700;
+      box-shadow: 0 4px 20px rgba(255,111,0,.55);
+      transition: opacity .2s, transform .15s;
+    }
+    .cta-btn:hover { opacity: .92; transform: translateY(-1px); }
+    .cta-price { font-size: 14px; opacity: .8; }
+    .cta-sub {
+      text-align: center; font-size: 12px; opacity: .7; margin-top: 10px;
+    }
+
+    /* ── 再診断リンク ── */
+    .retry-link {
+      text-align: center; margin-top: 8px;
+    }
+    .retry-link a {
+      color: var(--muted); font-size: 13px; text-decoration: none;
+    }
+    .retry-link a:hover { color: var(--primary); text-decoration: underline; }
+
+    /* ── フッター ── */
+    footer {
+      background: var(--primary); color: rgba(255,255,255,.75);
+      text-align: center; padding: 24px; font-size: 12px;
+    }
+    footer a { color: rgba(255,255,255,.75); text-decoration: none; }
+    footer a:hover { color: #fff; }
+
+    @media (max-width: 520px) {
+      .score-main { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .cta-features { grid-template-columns: 1fr; }
+      .rank-circle { width: 80px; height: 80px; }
+      .rank-letter { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <a href="/">土地造成リスク診断サービス</a>
+      <span>AI×公開データで土地リスクを可視化</span>
+    </div>
+    <div class="header-free-badge">🆓 無料診断結果</div>
+  </div>
+</header>
+
+<!-- メイン -->
+<div class="main">
+
+  <!-- ━━ 結果タイトル＋総合スコア ━━ -->
+  {% set rank = check.overall_rank or '—' %}
+  {% set score = check.total_score or 0 %}
+
+  {% set rank_labels = {'A':'優良','B':'良好','C':'要注意','D':'高リスク'} %}
+  {% set rank_descs  = {
+    'A':'造成適性が高く、リスクは低水準です。',
+    'B':'一部対策で造成可能な水準です。',
+    'C':'専門的検討と対策が必要な水準です。',
+    'D':'慎重な判断と専門家相談を強く推奨します。'
+  } %}
+
+  <div class="result-header">
+    <div class="result-header-label">■ 無料簡易診断結果</div>
+    <div class="result-address">
+      <span>📍</span>
+      <span>{{ check.address }}</span>
+    </div>
+  </div>
+
+  <div class="score-card">
+    <div class="score-main">
+      <div class="rank-circle rank-{{ rank }}">
+        <div class="rank-letter">{{ rank }}</div>
+        <div class="rank-sublabel">総合評価</div>
+      </div>
+      <div class="score-detail">
+        <div class="score-label" style="
+          {% if rank == 'A' %}color:#1B5E20{% elif rank == 'B' %}color:#1565C0{% elif rank == 'C' %}color:#E65100{% else %}color:#B71C1C{% endif %}
+        ">
+          {{ rank_labels.get(rank, '—') }}
+        </div>
+        <div class="score-desc">{{ rank_descs.get(rank, '') }}</div>
+        <div class="score-num">総合スコア: {{ score }} / 100点</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="summary-title">📊 スコアサマリー（概要のみ）</div>
+
+    <!-- 地形リスク -->
+    {% set st = check.score_terrain or 0 %}
+    <div class="score-row">
+      <div class="score-row-label">
+        <span class="cat-icon">🏔</span> 地形リスク
+      </div>
+      {% if st >= 15 %}
+        <span class="status-badge status-good">✅ 良好</span>
+      {% elif st >= 10 %}
+        <span class="status-badge status-caution">⚠️ 要注意</span>
+      {% else %}
+        <span class="status-badge status-danger">🔴 高リスク</span>
+      {% endif %}
+    </div>
+
+    <!-- 地盤リスク -->
+    {% set ss = check.score_soil or 0 %}
+    <div class="score-row">
+      <div class="score-row-label">
+        <span class="cat-icon">🌱</span> 地盤リスク
+      </div>
+      {% if ss >= 15 %}
+        <span class="status-badge status-good">✅ 良好</span>
+      {% elif ss >= 10 %}
+        <span class="status-badge status-caution">⚠️ 要注意</span>
+      {% else %}
+        <span class="status-badge status-danger">🔴 高リスク</span>
+      {% endif %}
+    </div>
+
+    <!-- 災害リスク -->
+    {% set sd = check.score_disaster or 0 %}
+    <div class="score-row">
+      <div class="score-row-label">
+        <span class="cat-icon">🌊</span> 災害リスク
+      </div>
+      {% if sd >= 15 %}
+        <span class="status-badge status-good">✅ 良好</span>
+      {% elif sd >= 10 %}
+        <span class="status-badge status-caution">⚠️ 要注意</span>
+      {% else %}
+        <span class="status-badge status-danger">🔴 高リスク</span>
+      {% endif %}
+    </div>
+
+    <!-- 法規制 -->
+    {% set sr = check.score_regulation or 0 %}
+    <div class="score-row">
+      <div class="score-row-label">
+        <span class="cat-icon">📋</span> 法規制
+      </div>
+      {% if sr >= 15 %}
+        <span class="status-badge status-good">✅ 標準</span>
+      {% elif sr >= 10 %}
+        <span class="status-badge status-caution">⚠️ やや複雑</span>
+      {% else %}
+        <span class="status-badge status-danger">🔴 複雑</span>
+      {% endif %}
+    </div>
+
+    <!-- 造成コスト -->
+    {% set sc = check.score_cost or 0 %}
+    <div class="score-row">
+      <div class="score-row-label">
+        <span class="cat-icon">💰</span> 造成コスト
+      </div>
+      {% if sc >= 15 %}
+        <span class="status-badge status-good">🟢 低コスト</span>
+      {% elif sc >= 10 %}
+        <span class="status-badge status-caution">⚠️ 標準コスト</span>
+      {% else %}
+        <span class="status-badge status-danger">🔴 高コスト</span>
+      {% endif %}
+    </div>
+
+  </div><!-- /score-card -->
+
+  <!-- ━━ ロック済み詳細エリア ━━ -->
+  <div class="locked-section">
+    <div class="locked-header">🔒 詳細データは有料レポートでご確認いただけます</div>
+    <div style="position:relative;">
+      <div class="locked-body">
+        <div class="locked-dummy-row">
+          <span>標高差（周辺5点）</span>
+          <span><span class="locked-dummy-bar" style="width:60px;"></span> m</span>
+        </div>
+        <div class="locked-dummy-row">
+          <span>地盤増幅率（AVS30）</span>
+          <span><span class="locked-dummy-bar" style="width:40px;"></span></span>
+        </div>
+        <div class="locked-dummy-row">
+          <span>想定浸水深</span>
+          <span><span class="locked-dummy-bar" style="width:50px;"></span> m</span>
+        </div>
+        <div class="locked-dummy-row">
+          <span>土砂災害リスク区域</span>
+          <span><span class="locked-dummy-bar" style="width:45px;"></span></span>
+        </div>
+        <div class="locked-dummy-row">
+          <span>造成費概算（100㎡）</span>
+          <span><span class="locked-dummy-bar" style="width:70px;"></span> 万円</span>
+        </div>
+        <div class="locked-dummy-row" style="border-bottom:none;">
+          <span>推奨アクション</span>
+          <span><span class="locked-dummy-bar" style="width:80px;"></span></span>
+        </div>
+      </div>
+      <div class="locked-overlay">
+        <div class="lock-icon">🔒</div>
+        <div class="lock-text">詳細データは有料レポートで確認できます</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━ 有料レポート購入 CTA ━━ -->
+  <div class="cta-banner">
+    <div class="cta-warning">⚠️ 詳細データは有料レポートでご確認いただけます</div>
+    <div class="cta-title">詳細レポートに含まれる内容</div>
+    <div class="cta-desc">
+      無料診断では概要スコアのみ表示されます。<br>
+      以下の詳細情報はA4・8ページの専門PDFレポートでご確認いただけます。
+    </div>
+    <div class="cta-features">
+      <div class="cta-feature"><span class="ck">✅</span>標高差・地形の詳細数値</div>
+      <div class="cta-feature"><span class="ck">✅</span>地盤増幅率・液状化リスク</div>
+      <div class="cta-feature"><span class="ck">✅</span>浸水深・土砂災害区域の詳細</div>
+      <div class="cta-feature"><span class="ck">✅</span>造成費概算（面積別試算表）</div>
+      <div class="cta-feature"><span class="ck">✅</span>法規制チェックリスト</div>
+      <div class="cta-feature"><span class="ck">✅</span>5項目レーダーチャート</div>
+      <div class="cta-feature"><span class="ck">✅</span>専門家による推奨アクション</div>
+      <div class="cta-feature"><span class="ck">✅</span>PDFメール納品（1〜2営業日）</div>
+    </div>
+
+    <a href="/?from_free={{ check.id }}" class="cta-btn">
+      👇 詳細レポートを購入する
+      <span class="cta-price"> ¥30,000（税込）</span>
+    </a>
+    <div class="cta-sub">Stripe社の安全な決済ページへ移動します</div>
+  </div>
+
+  <!-- 再診断リンク -->
+  <div class="retry-link">
+    <a href="/free-check">← 別の住所で再診断する</a>
+  </div>
+
+</div><!-- /main -->
+
+<footer>
+  <p>© 2024 土地造成リスク診断サービス &nbsp;|&nbsp;
+     <a href="/privacy">プライバシーポリシー</a> &nbsp;|&nbsp;
+     <a href="/tokutei">特定商取引法</a>
+  </p>
+</footer>
+
+</body>
+</html>

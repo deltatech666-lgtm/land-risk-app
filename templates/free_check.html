@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>無料簡易診断 | 土地造成リスク診断サービス</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #1A237E;
+      --primary-l: #283593;
+      --accent:    #FF6F00;
+      --green:     #2E7D32;
+      --red:       #C62828;
+      --bg:        #F4F6FB;
+      --card:      #FFFFFF;
+      --border:    #E0E0E0;
+      --text:      #212121;
+      --muted:     #757575;
+      --radius:    10px;
+      --shadow:    0 4px 24px rgba(0,0,0,.10);
+    }
+    body { font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+           background: var(--bg); color: var(--text); line-height: 1.7; }
+
+    /* ── ヘッダー ── */
+    header {
+      background: var(--primary); color: #fff;
+      padding: 0 24px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .brand { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+    .brand a { color: #fff; text-decoration: none; }
+    .brand span { font-size: 11px; font-weight: 400; margin-left: 10px;
+                  opacity: .8; display: inline-block; }
+    .header-free-badge {
+      background: linear-gradient(135deg,#FF6F00,#FF8F00);
+      color: #fff; font-size: 13px; font-weight: 700;
+      padding: 6px 18px; border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(255,111,0,.4);
+    }
+
+    /* ── ヒーロー（コンパクト）── */
+    .hero-mini {
+      background: linear-gradient(140deg, #0a1035 0%, #1A237E 50%, #0d1060 100%);
+      color: #fff; padding: 40px 24px 36px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hero-mini::after {
+      content: "";
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,255,.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,.10) 1px, transparent 1px);
+      background-size: 52px 52px;
+      pointer-events: none;
+    }
+    .hero-mini-content { position: relative; z-index: 1; }
+    .hero-mini h1 { font-size: clamp(20px,3.5vw,30px); font-weight: 700; margin-bottom: 10px; }
+    .hero-mini p { font-size: 14px; opacity: .88; max-width: 520px; margin: 0 auto; }
+    .free-badge-big {
+      display: inline-block;
+      background: rgba(255,111,0,.18); border: 1.5px solid rgba(255,160,40,.7);
+      color: #FFCC02; font-size: 13px; font-weight: 700;
+      padding: 5px 18px; border-radius: 20px; margin-bottom: 14px;
+      letter-spacing: .5px;
+    }
+
+    /* ── メインレイアウト ── */
+    .main {
+      max-width: 680px; margin: 0 auto; padding: 36px 16px 60px;
+    }
+
+    /* ── カード ── */
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 32px 28px;
+    }
+    .card-title {
+      font-size: 18px; font-weight: 700; color: var(--primary);
+      margin-bottom: 24px; padding-bottom: 14px;
+      border-bottom: 2px solid #E8EAF6;
+    }
+
+    /* ── フォーム ── */
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 14px; font-weight: 700;
+            color: var(--text); margin-bottom: 6px; }
+    .req { color: var(--red); font-size: 11px; font-weight: 700;
+           background: #FFEBEE; padding: 1px 5px; border-radius: 4px;
+           margin-left: 4px; }
+    .opt { color: var(--muted); font-size: 11px; font-weight: 400;
+           background: #F5F5F5; padding: 1px 6px; border-radius: 4px;
+           margin-left: 4px; }
+    input[type="text"], input[type="email"], input[type="number"], select {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 15px; font-family: inherit; color: var(--text);
+      background: #fff; transition: border-color .2s;
+    }
+    input:focus, select:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,35,126,.10);
+    }
+    .form-hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+    /* 利用用途セレクト */
+    .use-select {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+      margin-top: 4px;
+    }
+    .radio-btn {
+      position: relative; cursor: pointer;
+    }
+    .radio-btn input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .radio-btn-inner {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-weight: 600; color: var(--muted);
+      background: #FAFAFA; transition: all .15s; text-align: center;
+    }
+    .radio-btn input:checked + .radio-btn-inner {
+      border-color: var(--primary); background: #E8EAF6; color: var(--primary);
+    }
+    .radio-btn:hover .radio-btn-inner {
+      border-color: #9FA8DA; background: #F0F2FF;
+    }
+
+    /* ── 送信ボタン ── */
+    .submit-btn {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #1A237E 0%, #283593 100%);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 17px; font-weight: 700; font-family: inherit;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: opacity .2s, transform .15s;
+      box-shadow: 0 4px 16px rgba(26,35,126,.35);
+    }
+    .submit-btn:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
+    .submit-btn:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+    .spinner {
+      width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .8s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── アラート ── */
+    .alert {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px; border-radius: 8px;
+      font-size: 14px; margin-bottom: 20px;
+    }
+    .alert-error { background: #FFEBEE; border: 1px solid #FFCDD2; color: #B71C1C; }
+
+    /* ── 無料アピール ── */
+    .free-note {
+      background: linear-gradient(135deg, #FFF8E1 0%, #FFF3CD 100%);
+      border: 1.5px solid #FFD54F; border-radius: 10px;
+      padding: 16px 18px; margin-bottom: 24px;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .free-note-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+    .free-note-title { font-size: 15px; font-weight: 700; color: #E65100; margin-bottom: 4px; }
+    .free-note-text  { font-size: 13px; color: #5D4037; line-height: 1.6; }
+
+    /* ── フッター ── */
+    footer {
+      background: var(--primary); color: rgba(255,255,255,.75);
+      text-align: center; padding: 24px;
+      font-size: 12px;
+    }
+    footer a { color: rgba(255,255,255,.75); text-decoration: none; }
+    footer a:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <a href="/">土地造成リスク診断サービス</a>
+      <span>AI×公開データで土地リスクを可視化</span>
+    </div>
+    <div class="header-free-badge">🆓 無料診断</div>
+  </div>
+</header>
+
+<!-- ヒーロー -->
+<div class="hero-mini">
+  <div class="hero-mini-content">
+    <div class="free-badge-big">✨ 完全無料 · 登録不要</div>
+    <h1>無料簡易リスク診断</h1>
+    <p>住所を入力するだけで、土地の総合リスク評価（A〜D判定）を無料でご確認いただけます。</p>
+  </div>
+</div>
+
+<!-- メイン -->
+<div class="main">
+
+  <!-- 無料アピール -->
+  <div class="free-note">
+    <div class="free-note-icon">🎁</div>
+    <div>
+      <div class="free-note-title">無料でここまでわかります</div>
+      <div class="free-note-text">
+        地形・地盤・災害・法規制・造成コストの5項目を分析し、A〜D総合ランクを表示。
+        詳細データ・レーダーチャート・専門家アクションは有料レポート（¥30,000）でご確認いただけます。
+      </div>
+    </div>
+  </div>
+
+  <!-- フォームカード -->
+  <div class="card">
+    <div class="card-title">📍 診断する土地の情報を入力</div>
+
+    <div id="formAlert" class="alert alert-error" style="display:none;">
+      <span>⚠️</span>
+      <span id="formAlertMsg"></span>
+    </div>
+
+    <form id="freeCheckForm" novalidate>
+
+      <!-- 都道府県 -->
+      <div class="form-group">
+        <label for="prefecture">都道府県 <span class="req">※必須</span></label>
+        <select id="prefecture" name="prefecture">
+          <option value="">選択してください</option>
+          <option>北海道</option><option>青森県</option><option>岩手県</option>
+          <option>宮城県</option><option>秋田県</option><option>山形県</option>
+          <option>福島県</option><option>茨城県</option><option>栃木県</option>
+          <option>群馬県</option><option>埼玉県</option><option>千葉県</option>
+          <option>東京都</option><option>神奈川県</option><option>新潟県</option>
+          <option>富山県</option><option>石川県</option><option>福井県</option>
+          <option>山梨県</option><option>長野県</option><option>岐阜県</option>
+          <option>静岡県</option><option>愛知県</option><option>三重県</option>
+          <option>滋賀県</option><option>京都府</option><option>大阪府</option>
+          <option>兵庫県</option><option>奈良県</option><option>和歌山県</option>
+          <option>鳥取県</option><option>島根県</option><option>岡山県</option>
+          <option>広島県</option><option>山口県</option><option>徳島県</option>
+          <option>香川県</option><option>愛媛県</option><option>高知県</option>
+          <option>福岡県</option><option>佐賀県</option><option>長崎県</option>
+          <option>熊本県</option><option>大分県</option><option>宮崎県</option>
+          <option>鹿児島県</option><option>沖縄県</option>
+        </select>
+      </div>
+
+      <!-- 市区町村・番地 -->
+      <div class="form-group">
+        <label for="cityAddr">市区町村・番地 <span class="req">※必須</span></label>
+        <input type="text" id="cityAddr" name="city_address"
+               placeholder="例：横浜市港北区日吉本町1-2-3">
+        <p class="form-hint">番地まで入力するとより正確な診断が行えます</p>
+      </div>
+
+      <!-- 利用用途 -->
+      <div class="form-group">
+        <label>利用用途 <span class="req">※必須</span></label>
+        <div class="use-select">
+          <label class="radio-btn">
+            <input type="radio" name="land_use" value="住宅" checked>
+            <div class="radio-btn-inner">🏠 住宅</div>
+          </label>
+          <label class="radio-btn">
+            <input type="radio" name="land_use" value="商業">
+            <div class="radio-btn-inner">🏢 商業施設</div>
+          </label>
+          <label class="radio-btn">
+            <input type="radio" name="land_use" value="太陽光">
+            <div class="radio-btn-inner">☀️ 太陽光発電</div>
+          </label>
+          <label class="radio-btn">
+            <input type="radio" name="land_use" value="その他">
+            <div class="radio-btn-inner">📋 その他</div>
+          </label>
+        </div>
+      </div>
+
+      <!-- 敷地面積 -->
+      <div class="form-group">
+        <label for="siteArea">敷地面積（㎡） <span class="req">※必須</span></label>
+        <input type="number" id="siteArea" name="site_area"
+               placeholder="例：300" min="1" step="1">
+        <p class="form-hint">造成コスト概算の精度向上に使用します</p>
+      </div>
+
+      <!-- メールアドレス（任意） -->
+      <div class="form-group">
+        <label for="email">メールアドレス <span class="opt">任意</span></label>
+        <input type="email" id="email" name="email"
+               placeholder="例：yamada@example.com" autocomplete="email">
+        <p class="form-hint">
+          入力した場合、診断から3日後にフォローアップメールをお送りします。
+          メールマガジンには登録されません。
+        </p>
+      </div>
+
+      <!-- 送信ボタン -->
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnIcon">🔍</span>
+        <span id="btnText">無料で診断する</span>
+      </button>
+
+      <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px;">
+        クレジットカード不要・登録不要で完全無料です
+      </p>
+
+    </form>
+  </div>
+
+  <!-- 有料レポートへの誘導 -->
+  <div style="margin-top:24px;text-align:center;">
+    <p style="font-size:13px;color:var(--muted);">
+      より詳しい分析が必要な方は
+      <a href="/" style="color:var(--primary);font-weight:700;">詳細レポート（¥30,000）</a>
+      をご検討ください
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  <p>© 2024 土地造成リスク診断サービス &nbsp;|&nbsp;
+     <a href="/privacy">プライバシーポリシー</a> &nbsp;|&nbsp;
+     <a href="/tokutei">特定商取引法</a>
+  </p>
+</footer>
+
+<script>
+  document.getElementById('freeCheckForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const alertEl  = document.getElementById('formAlert');
+    const alertMsg = document.getElementById('formAlertMsg');
+    alertEl.style.display = 'none';
+
+    const pref      = document.getElementById('prefecture').value;
+    const city      = document.getElementById('cityAddr').value.trim();
+    const siteArea  = parseFloat(document.getElementById('siteArea').value);
+    const luRadio   = document.querySelector('input[name="land_use"]:checked');
+    const email     = document.getElementById('email').value.trim();
+
+    if (!pref)  { showErr('都道府県を選択してください。'); return; }
+    if (!city)  { showErr('市区町村・番地を入力してください。'); return; }
+    if (!siteArea || siteArea <= 0) { showErr('敷地面積を正しく入力してください。'); return; }
+    if (!luRadio)   { showErr('利用用途を選択してください。'); return; }
+
+    const btn     = document.getElementById('submitBtn');
+    const spinner = document.getElementById('spinner');
+    const icon    = document.getElementById('btnIcon');
+    const txt     = document.getElementById('btnText');
+    btn.disabled  = true;
+    spinner.style.display = 'block';
+    icon.style.display    = 'none';
+    txt.textContent       = '診断中...少々お待ちください';
+
+    try {
+      const resp = await fetch('/api/free-check', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prefecture:   pref,
+          city_address: city,
+          land_use:     luRadio.value,
+          site_area:    siteArea,
+          email:        email || ''
+        })
+      });
+      const data = await resp.json();
+
+      if (data.check_id) {
+        window.location.href = '/free-result?id=' + data.check_id;
+      } else {
+        showErr(data.error || 'エラーが発生しました。再度お試しください。');
+        resetBtn();
+      }
+    } catch (err) {
+      showErr('通信エラーが発生しました。インターネット接続を確認して再度お試しください。');
+      resetBtn();
+    }
+
+    function showErr(msg) {
+      alertMsg.textContent  = msg;
+      alertEl.style.display = 'flex';
+      alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function resetBtn() {
+      btn.disabled          = false;
+      spinner.style.display = 'none';
+      icon.style.display    = 'inline';
+      txt.textContent       = '無料で診断する';
+    }
+  });
+</script>
+</body>
+</html>

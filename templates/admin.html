@@ -224,8 +224,10 @@
 <!-- コンテンツ -->
 <div class="content">
 
-  <!-- 統計 -->
-  <div class="stats">
+  <!-- 有料診断 統計 -->
+  <div style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.5px;
+              margin-bottom:10px;">📋 有料診断レポート</div>
+  <div class="stats" style="margin-bottom:28px;">
     {% set total    = orders | length %}
     {% set paid     = orders | selectattr('payment_status','eq','paid') | list | length %}
     {% set sent     = orders | selectattr('report_status','eq','sent') | list | length %}
@@ -260,6 +262,114 @@
       </div>
     </div>
   </div>
+
+  <!-- 無料診断 統計 -->
+  <div style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.5px;
+              margin-bottom:10px;">🆓 無料簡易診断</div>
+  <div class="stats" style="margin-bottom:32px;">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFF3E0;">📅</div>
+      <div>
+        <div class="stat-value" style="color:var(--orange);">{{ free_today }}</div>
+        <div class="stat-label">本日の利用数</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#E3F2FD;">🆓</div>
+      <div>
+        <div class="stat-value" style="color:#1565C0;">{{ free_total }}</div>
+        <div class="stat-label">累計利用数</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#E8F5E9;">💰</div>
+      <div>
+        <div class="stat-value" style="color:var(--green);">{{ free_converted }}</div>
+        <div class="stat-label">有料転換数</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#EDE7F6;">📈</div>
+      <div>
+        <div class="stat-value" style="color:#6A1B9A;">
+          {% if free_total > 0 %}{{ "%.1f"|format(free_converted / free_total * 100) }}%{% else %}—{% endif %}
+        </div>
+        <div class="stat-label">転換率</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 無料診断 履歴テーブル -->
+  {% if free_checks %}
+  <div class="toolbar" style="margin-bottom:12px;">
+    <span class="toolbar-title" style="font-size:16px;">🆓 無料診断 履歴</span>
+    <span style="font-size:12px;color:var(--muted);margin-left:auto;">
+      最新 {{ free_checks | length }} 件
+    </span>
+  </div>
+  <div class="table-wrap" style="margin-bottom:32px;">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>診断日時</th>
+          <th>住所</th>
+          <th>用途</th>
+          <th>ランク</th>
+          <th>メール</th>
+          <th>転換</th>
+          <th>FU送信</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in free_checks %}
+        <tr>
+          <td><strong>#{{ '%04d' | format(f.id) }}</strong></td>
+          <td class="mono" style="font-size:12px;">{{ f.created_at }}</td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+              title="{{ f.address }}">{{ f.address }}</td>
+          <td>{{ f.land_use or '—' }}</td>
+          <td>
+            {% set r = f.overall_rank %}
+            {% if r == 'A' %}
+              <span style="background:#E8F5E9;color:#1B5E20;padding:2px 10px;border-radius:12px;font-weight:700;font-size:13px;">A</span>
+            {% elif r == 'B' %}
+              <span style="background:#E3F2FD;color:#1565C0;padding:2px 10px;border-radius:12px;font-weight:700;font-size:13px;">B</span>
+            {% elif r == 'C' %}
+              <span style="background:#FFF3E0;color:#E65100;padding:2px 10px;border-radius:12px;font-weight:700;font-size:13px;">C</span>
+            {% elif r == 'D' %}
+              <span style="background:#FFEBEE;color:#B71C1C;padding:2px 10px;border-radius:12px;font-weight:700;font-size:13px;">D</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:12px;">
+            {% if f.email %}
+              <span title="{{ f.email }}" style="color:var(--green);">✓ あり</span>
+            {% else %}
+              <span style="color:var(--muted);">なし</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if f.converted_to_paid %}
+              <span style="background:#E8F5E9;color:#2E7D32;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;">✓ 転換済</span>
+            {% else %}
+              <span style="color:var(--muted);font-size:12px;">未転換</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if f.followup_sent %}
+              <span style="background:#E3F2FD;color:#1565C0;padding:2px 8px;border-radius:10px;font-size:12px;">✓ 送信済</span>
+            {% elif f.email %}
+              <span style="color:var(--muted);font-size:12px;">⏳ 3日後</span>
+            {% else %}
+              <span style="color:var(--muted);font-size:12px;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
 
   <!-- ツールバー -->
   <div class="toolbar">

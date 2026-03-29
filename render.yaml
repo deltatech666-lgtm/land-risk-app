@@ -2,7 +2,30 @@ services:
   - type: web
     name: land-risk-app
     runtime: python
-    buildCommand: pip install -r requirements.txt && python -c "import os,urllib.request; d='fonts'; os.makedirs(d,exist_ok=True); f=os.path.join(d,'NotoSansJP-Regular.ttf'); (urllib.request.urlretrieve('https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP-Regular.ttf',f) if not os.path.exists(f) else None); print('Font ready:',f)"
+    buildCommand: pip install -r requirements.txt && python -c "
+import os, urllib.request
+d='fonts'; os.makedirs(d, exist_ok=True)
+f=os.path.join(d,'NotoSansJP-Regular.ttf')
+if os.path.exists(f) and os.path.getsize(f) > 50000:
+    print('Font already present:', f)
+else:
+    urls=[
+        'https://github.com/google/fonts/raw/main/ofl/notosansjp/static/NotoSansJP-Regular.ttf',
+        'https://github.com/notofonts/noto-cjk/raw/main/Sans/Variable/TTF/Subset/NotoSansJP-Regular.ttf',
+    ]
+    for url in urls:
+        try:
+            print('Downloading font:', url)
+            urllib.request.urlretrieve(url, f)
+            if os.path.getsize(f) > 50000:
+                print('Font ready:', f, os.path.getsize(f), 'bytes'); break
+            else:
+                os.remove(f)
+        except Exception as e:
+            print('Download failed:', e)
+    else:
+        print('WARNING: Font download failed. Japanese text may not render correctly.')
+"
     startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION

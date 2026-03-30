@@ -68,9 +68,13 @@ PLANS = {
 }
 
 # Paths
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-REPORTS_DIR = os.path.join(BASE_DIR, 'reports')
-DB_PATH = os.path.join(BASE_DIR, 'land_risk.db')
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+# Render Persistent Disk が /date にマウントされている場合はそちらを使用
+_DISK_DIR   = '/date'
+_USE_DISK   = os.path.isdir(_DISK_DIR)
+DATA_DIR    = _DISK_DIR if _USE_DISK else BASE_DIR
+REPORTS_DIR = os.path.join(DATA_DIR, 'reports')
+DB_PATH     = os.path.join(DATA_DIR, 'land_risk.db')
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
 

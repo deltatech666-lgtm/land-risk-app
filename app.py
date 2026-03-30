@@ -56,6 +56,7 @@ FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@example.com')
 
 # Admin
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+ADMIN_EMAIL    = os.environ.get('ADMIN_EMAIL', '')
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1442,12 +1443,93 @@ def stripe_webhook():
                 'UPDATE orders SET payment_status = "paid" '
                 'WHERE stripe_session_id = ?', (obj['id'],))
             db.commit()
+            order = db.execute(
+                'SELECT * FROM orders WHERE stripe_session_id = ?',
+                (obj['id'],)).fetchone()
+        if order:
+            notify_admin_new_order(dict(order))
     return jsonify({'status': 'ok'})
 
 
 # ============================================================
 # 10.5 Free Check (無料簡易診断) Routes & Email
 # ============================================================
+def send_admin_notification(subject: str, html_body: str) -> bool:
+    """管理者へメール通知を送信する"""
+    if not SENDGRID_API_KEY or not ADMIN_EMAIL:
+        return False
+    try:
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=ADMIN_EMAIL,
+            subject=subject,
+            html_content=html_body,
+        )
+        sg.send(message)
+        return True
+    except Exception as e:
+        print(f'[管理者通知] 送信失敗: {e}')
+        return False
+
+
+def notify_admin_new_order(order: dict) -> bool:
+    """有料注文が入ったとき管理者へ通知"""
+    admin_url = 'https://land-risk-app.onrender.com/admin'
+    html = f"""
+<div style="font-family:Meiryo,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+  <div style="background:#1B5E20;color:#fff;padding:16px 24px;border-radius:8px 8px 0 0;">
+    <h2 style="margin:0;font-size:18px;">💳 新規有料注文が入りました</h2>
+  </div>
+  <div style="background:#fff;border:1px solid #E0E0E0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;width:120px;">受付番号</td><td style="padding:8px 4px;font-weight:bold;">#{str(order.get('id','')).zfill(4)}</td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">依頼者名</td><td style="padding:8px 4px;font-weight:bold;">{order.get('requester_name','—')}</td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">メール</td><td style="padding:8px 4px;">{order.get('email','—')}</td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">住所</td><td style="padding:8px 4px;">{order.get('address','—')}</td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">利用用途</td><td style="padding:8px 4px;">{order.get('land_use','—')}</td></tr>
+      <tr><td style="padding:8px 4px;color:#666;">金額</td><td style="padding:8px 4px;font-weight:bold;color:#1B5E20;">¥30,000（税込）</td></tr>
+    </table>
+    <div style="text-align:center;margin:24px 0 8px;">
+      <a href="{admin_url}" style="background:#1A237E;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:bold;display:inline-block;">
+        管理画面で確認する →
+      </a>
+    </div>
+  </div>
+</div>"""
+    return send_admin_notification('【新規注文】土地造成リスク診断 有料レポート申込み', html)
+
+
+def notify_admin_free_check(check_id: int, address: str, rank: str, email: str) -> bool:
+    """無料診断が来たとき管理者へ通知"""
+    rank_labels = {'A': '優良', 'B': '良好', 'C': '要注意', 'D': '高リスク'}
+    rank_colors = {'A': '#1B5E20', 'B': '#1565C0', 'C': '#E65100', 'D': '#B71C1C'}
+    rank_label  = rank_labels.get(rank, '—')
+    rank_color  = rank_colors.get(rank, '#555')
+    admin_url   = 'https://land-risk-app.onrender.com/admin'
+    has_email   = '✅ あり' if email else '❌ なし（フォローアップ不可）'
+    html = f"""
+<div style="font-family:Meiryo,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+  <div style="background:#E65100;color:#fff;padding:16px 24px;border-radius:8px 8px 0 0;">
+    <h2 style="margin:0;font-size:18px;">🆓 無料診断が実施されました</h2>
+  </div>
+  <div style="background:#fff;border:1px solid #E0E0E0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;width:120px;">診断番号</td><td style="padding:8px 4px;font-weight:bold;">#{str(check_id).zfill(4)}</td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">住所</td><td style="padding:8px 4px;">{address}</td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">総合ランク</td><td style="padding:8px 4px;font-weight:bold;color:{rank_color};">{rank}（{rank_label}）</td></tr>
+      <tr><td style="padding:8px 4px;color:#666;">メール</td><td style="padding:8px 4px;">{has_email}</td></tr>
+    </table>
+    <div style="text-align:center;margin:24px 0 8px;">
+      <a href="{admin_url}" style="background:#1A237E;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:bold;display:inline-block;">
+        管理画面で確認する →
+      </a>
+    </div>
+  </div>
+</div>"""
+    return send_admin_notification('【無料診断】土地造成リスク診断 新規利用', html)
+
+
 def send_followup_email(check: dict, base_url: str = '') -> bool:
     """無料診断から3日後のフォローアップメール送信"""
     if not SENDGRID_API_KEY or not check.get('email'):
@@ -1610,6 +1692,16 @@ def api_free_check():
             ))
             db.commit()
             check_id = cur.lastrowid
+
+        # 管理者へ通知（バックグラウンドで送信、失敗しても診断結果には影響しない）
+        try:
+            notify_admin_free_check(
+                check_id, address,
+                assessment['overall_rank'],
+                email if email else ''
+            )
+        except Exception:
+            pass
 
         return jsonify({'check_id': check_id})
 

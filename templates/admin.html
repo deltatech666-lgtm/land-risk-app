@@ -215,6 +215,8 @@
       <small>土地造成リスク診断サービス</small>
     </div>
     <div class="header-actions">
+      <a href="/admin/csv/orders" class="btn-outline">⬇ 有料CSV</a>
+      <a href="/admin/csv/free-checks" class="btn-outline">⬇ 無料CSV</a>
       <a href="/" class="btn-outline" target="_blank">受付フォーム ↗</a>
       <a href="/admin/logout" class="btn-outline">ログアウト</a>
     </div>
@@ -306,6 +308,7 @@
     <span style="font-size:12px;color:var(--muted);margin-left:auto;">
       最新 {{ free_checks | length }} 件
     </span>
+    <a href="/admin/csv/free-checks" class="btn-dl" style="margin-left:8px;">⬇ CSV</a>
   </div>
   <div class="table-wrap" style="margin-bottom:32px;">
     <table>
@@ -323,7 +326,7 @@
       </thead>
       <tbody>
         {% for f in free_checks %}
-        <tr>
+        <tr style="cursor:pointer;" onclick="showFreeDetail({{ loop.index0 }})">
           <td><strong>#{{ '%04d' | format(f.id) }}</strong></td>
           <td class="mono" style="font-size:12px;">{{ f.created_at }}</td>
           <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
@@ -376,6 +379,7 @@
     <span class="toolbar-title">案件一覧</span>
     <input type="text" class="search-input" id="searchInput"
            placeholder="🔍 依頼者名・住所で検索...">
+    <a href="/admin/csv/orders" class="btn-dl" style="margin-left:auto;">⬇ CSV出力</a>
     <select class="filter-select" id="paymentFilter">
       <option value="">すべての支払い状況</option>
       <option value="paid">決済完了</option>
@@ -476,7 +480,7 @@
 
 </div><!-- /content -->
 
-<!-- 詳細モーダル -->
+<!-- 有料診断 詳細モーダル -->
 <div class="modal-overlay" id="detailModal">
   <div class="modal">
     <div class="modal-title">
@@ -487,12 +491,24 @@
   </div>
 </div>
 
+<!-- 無料診断 詳細モーダル -->
+<div class="modal-overlay" id="freeDetailModal">
+  <div class="modal">
+    <div class="modal-title">
+      <button class="modal-close" onclick="closeFreeModal()">✕</button>
+      🆓 無料診断 詳細
+    </div>
+    <div id="freeModalContent"></div>
+  </div>
+</div>
+
 <!-- トースト -->
 <div id="toast"></div>
 
 <script>
   // ── データ（Jinja2から渡す） ──
-  const ORDERS = {{ orders | tojson }};
+  const ORDERS       = {{ orders | tojson }};
+  const FREE_CHECKS  = {{ free_checks | tojson }};
 
   // ── トースト ──
   function showToast(msg, type = 'info', duration = 4000) {
@@ -594,6 +610,59 @@
   // モーダル外クリックで閉じる
   document.getElementById('detailModal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
+  });
+
+  // ── 無料診断 詳細モーダル ──
+  function showFreeDetail(idx) {
+    const f = FREE_CHECKS[idx];
+    if (!f) return;
+
+    const rankLabel = { A:'優良', B:'良好', C:'要注意', D:'高リスク' };
+    const rows = [
+      ['診断番号',     `#${String(f.id).padStart(4,'0')}`],
+      ['診断日時',     f.created_at || '—'],
+      ['都道府県',     f.prefecture || '—'],
+      ['市区町村',     f.city_address || '—'],
+      ['住所',         f.address || '—'],
+      ['利用用途',     f.land_use || '—'],
+      ['敷地面積',     f.site_area != null ? `${f.site_area} ㎡` : '—'],
+      ['メール',       f.email || '（未入力）'],
+      ['──', '─────────────────'],
+      ['緯度',         f.latitude  ? `${f.latitude}°`  : '—'],
+      ['経度',         f.longitude ? `${f.longitude}°` : '—'],
+      ['標高',         f.elevation  != null ? `${f.elevation} m` : '—'],
+      ['周辺標高差',   f.elevation_diff != null ? `${Number(f.elevation_diff).toFixed(1)} m` : '—'],
+      ['地盤増幅率',   f.soil_amplification != null ? Number(f.soil_amplification).toFixed(2) : '—'],
+      ['想定浸水深',   f.flood_depth != null ? `${f.flood_depth} m` : '—'],
+      ['土砂リスク',   f.landslide_risk > 0 ? '有' : '無'],
+      ['──', '─────────────────'],
+      ['総合ランク',   f.overall_rank ? `${f.overall_rank}（${rankLabel[f.overall_rank] || ''}）` : '—'],
+      ['総合スコア',   f.total_score != null ? `${f.total_score}/100点` : '—'],
+      ['地形スコア',   f.score_terrain != null ? `${f.score_terrain}/20` : '—'],
+      ['地盤スコア',   f.score_soil != null ? `${f.score_soil}/20` : '—'],
+      ['災害スコア',   f.score_disaster != null ? `${f.score_disaster}/20` : '—'],
+      ['法規制スコア', f.score_regulation != null ? `${f.score_regulation}/20` : '—'],
+      ['コストスコア', f.score_cost != null ? `${f.score_cost}/20` : '—'],
+      ['──', '─────────────────'],
+      ['有料転換',     f.converted_to_paid ? '✅ 転換済' : '未転換'],
+      ['FU送信',       f.followup_sent ? '✅ 送信済' : (f.email ? '⏳ 3日後' : '—')],
+    ];
+
+    const html = rows.map(([k, v]) => {
+      if (k === '──') return `<div style="border-top:1px dashed #ddd; margin:6px 0;"></div>`;
+      return `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v}</span></div>`;
+    }).join('');
+
+    document.getElementById('freeModalContent').innerHTML = html;
+    document.getElementById('freeDetailModal').classList.add('active');
+  }
+
+  function closeFreeModal() {
+    document.getElementById('freeDetailModal').classList.remove('active');
+  }
+
+  document.getElementById('freeDetailModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeFreeModal();
   });
 
   // ── 検索・フィルター ──

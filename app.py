@@ -11,6 +11,7 @@ import os
 import json
 import math
 import io
+import csv
 import base64
 import sqlite3
 import requests
@@ -1753,6 +1754,89 @@ def admin_download(order_id):
         io.BytesIO(pdf_bytes), as_attachment=True,
         download_name=f'report_{order_id:04d}.pdf',
         mimetype='application/pdf')
+
+
+@app.route('/admin/csv/orders')
+def admin_csv_orders():
+    if not is_admin():
+        return redirect('/admin/login')
+
+    with get_db() as db:
+        rows = db.execute('SELECT * FROM orders ORDER BY created_at DESC').fetchall()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'ID', '受注日時', '依頼者名', 'メール', '住所', '利用用途',
+        '支払い状況', 'レポート状況', '送付日時',
+        '緯度', '経度', '標高', '周辺標高差', '地盤増幅率', '想定浸水深',
+        '土砂リスク', '総合ランク', '総合スコア',
+        '地形スコア', '地盤スコア', '災害スコア', '法規制スコア', 'コストスコア',
+        '造成費(円/㎡)', '地盤改良費(円/㎡)', '合計概算(円/㎡)',
+    ])
+    for r in rows:
+        o = dict(r)
+        writer.writerow([
+            o.get('id'), o.get('created_at'), o.get('requester_name'),
+            o.get('email'), o.get('address'), o.get('land_use'),
+            o.get('payment_status'), o.get('report_status'), o.get('sent_at'),
+            o.get('latitude'), o.get('longitude'), o.get('elevation'),
+            o.get('elevation_diff'), o.get('soil_amplification'), o.get('flood_depth'),
+            o.get('landslide_risk'), o.get('overall_rank'), o.get('total_score'),
+            o.get('score_terrain'), o.get('score_soil'), o.get('score_disaster'),
+            o.get('score_regulation'), o.get('score_cost'),
+            o.get('grading_cost_per_sqm'), o.get('soil_improvement_cost_per_sqm'),
+            o.get('total_cost_per_sqm'),
+        ])
+
+    output.seek(0)
+    filename = f'orders_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    return app.response_class(
+        '\ufeff' + output.getvalue(),
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
+@app.route('/admin/csv/free-checks')
+def admin_csv_free_checks():
+    if not is_admin():
+        return redirect('/admin/login')
+
+    with get_db() as db:
+        rows = db.execute('SELECT * FROM free_checks ORDER BY created_at DESC').fetchall()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'ID', '診断日時', '都道府県', '市区町村', '住所', '利用用途', '敷地面積(㎡)',
+        'メール', '緯度', '経度', '標高', '周辺標高差', '地盤増幅率', '想定浸水深',
+        '土砂リスク', '総合ランク', '総合スコア',
+        '地形スコア', '地盤スコア', '災害スコア', '法規制スコア', 'コストスコア',
+        '有料転換', 'FU送信',
+    ])
+    for r in rows:
+        f = dict(r)
+        writer.writerow([
+            f.get('id'), f.get('created_at'), f.get('prefecture'),
+            f.get('city_address'), f.get('address'), f.get('land_use'),
+            f.get('site_area'), f.get('email'),
+            f.get('latitude'), f.get('longitude'), f.get('elevation'),
+            f.get('elevation_diff'), f.get('soil_amplification'), f.get('flood_depth'),
+            f.get('landslide_risk'), f.get('overall_rank'), f.get('total_score'),
+            f.get('score_terrain'), f.get('score_soil'), f.get('score_disaster'),
+            f.get('score_regulation'), f.get('score_cost'),
+            '済' if f.get('converted_to_paid') else '未',
+            '済' if f.get('followup_sent') else '未',
+        ])
+
+    output.seek(0)
+    filename = f'free_checks_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    return app.response_class(
+        '\ufeff' + output.getvalue(),
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
 
 
 # ============================================================

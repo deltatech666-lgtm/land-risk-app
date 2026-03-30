@@ -404,6 +404,7 @@
           <th>メール</th>
           <th>住所</th>
           <th>用途</th>
+          <th>プラン</th>
           <th>支払い</th>
           <th>ランク</th>
           <th>レポート</th>
@@ -429,6 +430,13 @@
             <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
                 title="{{ o.address }}">{{ o.address }}</td>
             <td>{{ o.land_use }}</td>
+            <td>
+              {% if o.plan == 'lite' %}
+                <span class="badge" style="background:#FFF3E0;color:#E65100;">ライト</span>
+              {% else %}
+                <span class="badge" style="background:#E8F5E9;color:#1B5E20;">スタンダード</span>
+              {% endif %}
+            </td>
             <td>
               {% if o.payment_status == 'paid' %}
                 <span class="badge badge-paid">✅ 決済済み</span>
@@ -569,6 +577,7 @@
       ['メール',         o.email],
       ['住所',           o.address],
       ['利用用途',       o.land_use],
+      ['プラン',         o.plan === 'lite' ? 'ライトプラン（¥10,000）' : 'スタンダードプラン（¥30,000）'],
       ['支払い状況',     o.payment_status === 'paid' ? '✅ 決済完了' : '⏳ 未決済'],
       ['──',             '─────────────────'],
       ['緯度',           o.latitude  ? `${o.latitude}°`  : '—'],

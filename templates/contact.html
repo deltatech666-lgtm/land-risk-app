@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VXT39X9QQJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-VXT39X9QQJ');
+  </script>
+  <title>お問い合わせ | 土地造成リスク診断サービス</title>
+  <meta name="description" content="土地造成リスク診断サービスへのお問い合わせはこちら。サービス内容・料金・診断方法など、お気軽にご質問ください。">
+  <link rel="canonical" href="https://land-risk-app.onrender.com/contact">
+  <meta property="og:type"      content="website">
+  <meta property="og:title"     content="お問い合わせ | 土地造成リスク診断サービス">
+  <meta property="og:url"       content="https://land-risk-app.onrender.com/contact">
+  <meta property="og:image"     content="https://land-risk-app.onrender.com/static/ogp.png">
+  <meta property="og:locale"    content="ja_JP">
+  <meta property="og:site_name" content="土地造成リスク診断サービス">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:  #1A237E;
+      --primary-l:#283593;
+      --accent:   #FF6F00;
+      --green:    #2E7D32;
+      --bg:       #F4F6FB;
+      --card:     #FFFFFF;
+      --border:   #E0E0E0;
+      --text:     #212121;
+      --muted:    #757575;
+    }
+    body { font-family: "Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+           background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ヘッダー */
+    header {
+      background: var(--primary); color: #fff;
+      padding: 0; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-inner {
+      width: 100%; padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .brand { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+    .brand a { color: #fff; text-decoration: none; }
+    .header-nav { display: flex; align-items: center; gap: 12px; }
+    .nav-link {
+      color: rgba(255,255,255,.85); text-decoration: none;
+      font-size: 13px; font-weight: 600; padding: 6px 14px;
+      border-radius: 20px; transition: background .2s;
+    }
+    .nav-link:hover { background: rgba(255,255,255,.15); color: #fff; }
+    .btn-free {
+      background: linear-gradient(135deg,#FF6F00,#FF8F00); color: #fff;
+      font-size: 13px; font-weight: 700; padding: 7px 18px;
+      border-radius: 20px; text-decoration: none; white-space: nowrap;
+    }
+
+    /* コンテンツ */
+    .content { max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .page-title {
+      font-size: 26px; font-weight: 700; color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .page-subtitle {
+      color: var(--muted); font-size: 14px; margin-bottom: 36px;
+      line-height: 1.7;
+    }
+
+    /* カード */
+    .card {
+      background: var(--card); border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      padding: 36px 40px;
+    }
+
+    /* フォーム */
+    .field { margin-bottom: 24px; }
+    label {
+      display: block; font-size: 13px; font-weight: 700;
+      color: var(--text); margin-bottom: 7px;
+    }
+    label .req {
+      display: inline-block; background: var(--accent); color: #fff;
+      font-size: 11px; font-weight: 700; padding: 1px 7px;
+      border-radius: 4px; margin-left: 6px; vertical-align: middle;
+    }
+    label .opt {
+      display: inline-block; background: #B0BEC5; color: #fff;
+      font-size: 11px; font-weight: 700; padding: 1px 7px;
+      border-radius: 4px; margin-left: 6px; vertical-align: middle;
+    }
+    input[type=text], input[type=email], select, textarea {
+      width: 100%; padding: 12px 16px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 15px; font-family: inherit; color: var(--text);
+      transition: border-color .2s, box-shadow .2s;
+      background: #FAFAFA;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,35,126,.10);
+      background: #fff;
+    }
+    textarea { resize: vertical; min-height: 140px; line-height: 1.7; }
+
+    .submit-btn {
+      width: 100%; padding: 16px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: background .2s, transform .15s;
+      margin-top: 8px;
+    }
+    .submit-btn:hover:not(:disabled) {
+      background: var(--primary-l); transform: translateY(-1px);
+    }
+    .submit-btn:disabled { background: #B0BEC5; cursor: not-allowed; transform: none; }
+
+    /* エラー・成功 */
+    .alert {
+      padding: 14px 18px; border-radius: 8px; font-size: 14px;
+      margin-bottom: 20px; display: none;
+    }
+    .alert.error   { background: #FFEBEE; color: #B71C1C; border-left: 4px solid #EF5350; }
+    .alert.success { background: #E8F5E9; color: #1B5E20; border-left: 4px solid #4CAF50; }
+    .alert.show { display: block; }
+
+    /* 完了画面 */
+    .done-screen {
+      text-align: center; padding: 48px 24px; display: none;
+    }
+    .done-screen.show { display: block; }
+    .done-icon { font-size: 64px; margin-bottom: 16px; }
+    .done-title { font-size: 22px; font-weight: 700; color: var(--green); margin-bottom: 12px; }
+    .done-msg { color: var(--muted); font-size: 15px; line-height: 1.8; margin-bottom: 28px; }
+    .done-btn {
+      display: inline-block; padding: 12px 32px;
+      background: var(--primary); color: #fff;
+      border-radius: 8px; text-decoration: none;
+      font-size: 15px; font-weight: 700;
+    }
+
+    /* FAQ */
+    .faq { margin-top: 48px; }
+    .faq-title { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
+    .faq-item { background: var(--card); border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,.06);
+                margin-bottom: 12px; overflow: hidden; }
+    .faq-q {
+      padding: 16px 20px; font-size: 14px; font-weight: 700;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      user-select: none;
+    }
+    .faq-q:hover { background: #F8F9FF; }
+    .faq-icon { font-size: 18px; transition: transform .25s; flex-shrink: 0; }
+    .faq-a {
+      padding: 0 20px; max-height: 0; overflow: hidden;
+      font-size: 14px; color: var(--muted); line-height: 1.8;
+      transition: max-height .3s ease, padding .3s;
+    }
+    .faq-item.open .faq-a { max-height: 200px; padding: 0 20px 16px; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+
+    /* フッター */
+    footer {
+      background: var(--primary); color: rgba(255,255,255,.7);
+      text-align: center; padding: 20px;
+      font-size: 12px; margin-top: 60px;
+    }
+    footer a { color: rgba(255,255,255,.7); }
+
+    @media(max-width:600px) {
+      .card { padding: 24px 20px; }
+      .header-inner { padding: 0 16px; }
+      .brand { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand"><a href="/">🏗 土地造成リスク診断</a></div>
+    <div class="header-nav">
+      <a href="/free-check" class="btn-free">🆓 無料診断</a>
+      <a href="/contact" class="nav-link" style="color:#fff;">お問い合わせ</a>
+    </div>
+  </div>
+</header>
+
+<div class="content">
+  <div class="page-title">📩 お問い合わせ</div>
+  <p class="page-subtitle">
+    サービス内容・料金・診断方法などご不明な点はお気軽にご連絡ください。<br>
+    通常 <strong>1〜2営業日以内</strong> にご返信いたします。
+  </p>
+
+  <div class="card">
+    <!-- 完了画面 -->
+    <div class="done-screen" id="doneScreen">
+      <div class="done-icon">✅</div>
+      <div class="done-title">送信完了しました</div>
+      <p class="done-msg">
+        お問い合わせありがとうございます。<br>
+        内容を確認の上、1〜2営業日以内にご返信いたします。
+      </p>
+      <a href="/" class="done-btn">トップページへ戻る</a>
+    </div>
+
+    <!-- フォーム -->
+    <form id="contactForm">
+      <div class="alert" id="alertBox"></div>
+
+      <div class="field">
+        <label>お名前 <span class="req">必須</span></label>
+        <input type="text" id="name" placeholder="例：山田 太郎" autocomplete="name">
+      </div>
+
+      <div class="field">
+        <label>メールアドレス <span class="req">必須</span></label>
+        <input type="email" id="email" placeholder="例：example@email.com" autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label>お問い合わせ種別 <span class="req">必須</span></label>
+        <select id="category">
+          <option value="">選択してください</option>
+          <option value="サービスについて">サービス内容について</option>
+          <option value="料金・支払いについて">料金・お支払いについて</option>
+          <option value="診断結果について">診断結果・レポートについて</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>お問い合わせ内容 <span class="req">必須</span></label>
+        <textarea id="message" placeholder="ご質問・ご要望をできるだけ詳しくお書きください。"></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        送信する
+      </button>
+    </form>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <div class="faq-title">💬 よくあるご質問</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>無料診断と有料レポートの違いは何ですか？</span>
+        <span class="faq-icon">＋</span>
+      </div>
+      <div class="faq-a">
+        無料診断は住所を入力するだけでA〜Dのリスクランクと5項目のスコアを即時表示します。
+        有料レポート（¥30,000税込）では詳細な数値・コスト試算・法規制チェック・レーダーチャートをPDFでご提供します。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>レポートはいつ届きますか？</span>
+        <span class="faq-icon">＋</span>
+      </div>
+      <div class="faq-a">
+        ご入金確認後、通常 1〜2営業日以内にご登録のメールアドレスへPDFをお送りします。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>どのような土地でも診断できますか？</span>
+        <span class="faq-icon">＋</span>
+      </div>
+      <div class="faq-a">
+        日本全国の土地を対象としています。ただし地図データの精度により一部の山間部・離島では精度が下がる場合があります。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>返金・キャンセルは可能ですか？</span>
+        <span class="faq-icon">＋</span>
+      </div>
+      <div class="faq-a">
+        デジタルコンテンツの性質上、レポート送付後のキャンセル・返金はお受けできません。
+        ご購入前にお気軽にお問い合わせください。
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="/privacy">プライバシーポリシー</a> ｜
+  <a href="/tokutei">特定商取引法に基づく表記</a><br>
+  <span style="margin-top:6px;display:block;">© 2025 土地造成リスク診断サービス</span>
+</footer>
+
+<script>
+  // フォーム送信
+  document.getElementById('contactForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name     = document.getElementById('name').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    const category = document.getElementById('category').value;
+    const message  = document.getElementById('message').value.trim();
+    const alertBox = document.getElementById('alertBox');
+    const btn      = document.getElementById('submitBtn');
+
+    // バリデーション
+    if (!name)     return showAlert('お名前を入力してください');
+    if (!email || !email.includes('@')) return showAlert('正しいメールアドレスを入力してください');
+    if (!category) return showAlert('お問い合わせ種別を選択してください');
+    if (!message)  return showAlert('お問い合わせ内容を入力してください');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ 送信中...';
+    alertBox.className = 'alert';
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, category, message }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('contactForm').style.display = 'none';
+        document.getElementById('doneScreen').classList.add('show');
+        gtag('event', 'contact_submitted', { event_category: 'engagement' });
+      } else {
+        showAlert(data.error || '送信に失敗しました。しばらく後でお試しください。');
+        btn.disabled = false;
+        btn.textContent = '送信する';
+      }
+    } catch {
+      showAlert('通信エラーが発生しました。しばらく後でお試しください。');
+      btn.disabled = false;
+      btn.textContent = '送信する';
+    }
+  });
+
+  function showAlert(msg) {
+    const el = document.getElementById('alertBox');
+    el.textContent = '⚠ ' + msg;
+    el.className = 'alert error show';
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // FAQ アコーディオン
+  function toggleFaq(el) {
+    el.parentElement.classList.toggle('open');
+  }
+</script>
+</body>
+</html>

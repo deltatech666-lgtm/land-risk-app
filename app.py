@@ -1932,6 +1932,106 @@ def admin_csv_free_checks():
 
 
 # ============================================================
+# 11.5 Contact Form
+# ============================================================
+@app.route('/contact')
+def contact_page():
+    return render_template('contact.html')
+
+
+@app.route('/api/contact', methods=['POST'])
+def api_contact():
+    data     = request.get_json(force=True)
+    name     = data.get('name', '').strip()
+    email    = data.get('email', '').strip()
+    category = data.get('category', '').strip()
+    message  = data.get('message', '').strip()
+
+    if not name or not email or not category or not message:
+        return jsonify({'error': '必須項目をすべて入力してください'}), 400
+    if '@' not in email:
+        return jsonify({'error': '正しいメールアドレスを入力してください'}), 400
+
+    # 管理者へ通知メール
+    html_admin = f"""
+<div style="font-family:Meiryo,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+  <div style="background:#1A237E;color:#fff;padding:16px 24px;border-radius:8px 8px 0 0;">
+    <h2 style="margin:0;font-size:18px;">📩 お問い合わせが届きました</h2>
+  </div>
+  <div style="background:#fff;border:1px solid #E0E0E0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;width:120px;">お名前</td><td style="padding:8px 4px;font-weight:bold;">{name}</td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">メール</td><td style="padding:8px 4px;"><a href="mailto:{email}">{email}</a></td></tr>
+      <tr style="border-bottom:1px solid #eee;"><td style="padding:8px 4px;color:#666;">種別</td><td style="padding:8px 4px;">{category}</td></tr>
+      <tr><td style="padding:8px 4px;color:#666;vertical-align:top;">内容</td>
+          <td style="padding:8px 4px;white-space:pre-wrap;line-height:1.8;">{message}</td></tr>
+    </table>
+    <p style="margin-top:20px;color:#999;font-size:12px;">
+      返信は <a href="mailto:{email}">{email}</a> 宛に直接ご返信ください。
+    </p>
+  </div>
+</div>"""
+
+    # 送信者への自動返信メール
+    html_reply = f"""
+<div style="font-family:Meiryo,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+  <div style="background:#1A237E;color:#fff;padding:16px 24px;border-radius:8px 8px 0 0;">
+    <h2 style="margin:0;font-size:18px;">🏗 土地造成リスク診断サービス</h2>
+    <p style="margin:4px 0 0;opacity:.85;font-size:13px;">お問い合わせ受付完了</p>
+  </div>
+  <div style="background:#fff;border:1px solid #E0E0E0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <p>{name} 様</p>
+    <p style="margin-top:12px;line-height:1.8;">
+      お問い合わせいただきありがとうございます。<br>
+      内容を確認の上、<strong>1〜2営業日以内</strong>にご返信いたします。
+    </p>
+    <div style="background:#F4F6FB;border-radius:8px;padding:16px 20px;margin:20px 0;border-left:4px solid #1A237E;">
+      <p style="margin:0 0 6px;font-size:12px;color:#666;">【お問い合わせ内容】</p>
+      <p style="margin:0 0 4px;font-size:13px;color:#666;">種別：{category}</p>
+      <p style="margin:0;font-size:14px;white-space:pre-wrap;line-height:1.7;">{message}</p>
+    </div>
+    <p style="color:#999;font-size:12px;margin-top:20px;">
+      このメールはシステムからの自動送信です。<br>
+      心当たりのない場合はお手数ですが削除してください。
+    </p>
+  </div>
+</div>"""
+
+    try:
+        if not SENDGRID_API_KEY:
+            return jsonify({'error': 'メール設定が未完了です'}), 500
+
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+
+        # 管理者へ通知
+        if ADMIN_EMAIL:
+            admin_msg = Mail(
+                from_email=FROM_EMAIL,
+                to_emails=ADMIN_EMAIL,
+                subject=f'【お問い合わせ】{name}様より — {category}',
+                html_content=html_admin,
+            )
+            # reply-toを送信者のメールに設定
+            admin_msg.reply_to = email
+            sg.send(admin_msg)
+
+        # 送信者へ自動返信
+        reply_msg = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=email,
+            subject='【自動返信】お問い合わせを受け付けました | 土地造成リスク診断サービス',
+            html_content=html_reply,
+        )
+        sg.send(reply_msg)
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': '送信に失敗しました。しばらく後でお試しください。'}), 500
+
+
+# ============================================================
 # 12. Sitemap & robots.txt
 # ============================================================
 @app.route('/sitemap.xml')
@@ -1940,6 +2040,7 @@ def sitemap():
     pages = [
         ('/', '1.0', 'weekly'),
         ('/free-check', '0.8', 'weekly'),
+        ('/contact', '0.6', 'monthly'),
         ('/privacy', '0.3', 'monthly'),
         ('/tokutei', '0.3', 'monthly'),
     ]

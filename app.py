@@ -58,6 +58,15 @@ FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@example.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 ADMIN_EMAIL    = os.environ.get('ADMIN_EMAIL', '')
 
+# LINE Notify
+LINE_NOTIFY_TOKEN = os.environ.get('LINE_NOTIFY_TOKEN', '')
+
+# Plans
+PLANS = {
+    'lite':     {'name': 'ライトプラン',     'price': 10000, 'pages': 4},
+    'standard': {'name': 'スタンダードプラン', 'price': 30000, 'pages': 8},
+}
+
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORTS_DIR = os.path.join(BASE_DIR, 'reports')
@@ -111,10 +120,13 @@ def init_db():
             )
         ''')
         db.commit()
-        # 既存DBへのマイグレーション: site_area カラムがなければ追加
+        # 既存DBへのマイグレーション
         existing_cols = [row[1] for row in db.execute('PRAGMA table_info(orders)').fetchall()]
         if 'site_area' not in existing_cols:
             db.execute('ALTER TABLE orders ADD COLUMN site_area REAL')
+            db.commit()
+        if 'plan' not in existing_cols:
+            db.execute("ALTER TABLE orders ADD COLUMN plan TEXT DEFAULT 'standard'")
             db.commit()
 
         # 無料簡易診断テーブル
@@ -618,6 +630,148 @@ def _get_recommended_actions(order: dict) -> list:
 # ============================================================
 # 8. PDF Generation (A4・8ページ)
 # ============================================================
+def build_lite_pdf(order: dict) -> bytes:
+    """ライトプラン用 簡易PDFレポート（4ページ）"""
+    register_japanese_font()
+    F   = FONT_NAME
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        rightMargin=2 * cm, leftMargin=2 * cm,
+        topMargin=2 * cm, bottomMargin=2 * cm,
+    )
+
+    rank        = order.get('overall_rank', '—')
+    total_score = order.get('total_score', 0)
+    rank_labels = {'A': '優良', 'B': '良好', 'C': '要注意', 'D': '高リスク'}
+    rank_colors = {
+        'A': colors.HexColor('#1B5E20'),
+        'B': colors.HexColor('#1565C0'),
+        'C': colors.HexColor('#E65100'),
+        'D': colors.HexColor('#B71C1C'),
+    }
+    rank_label = rank_labels.get(rank, '—')
+    rank_color = rank_colors.get(rank, colors.grey)
+
+    styles = getSampleStyleSheet()
+    title_style  = ParagraphStyle('T', fontName=F, fontSize=20, textColor=colors.HexColor('#1A237E'), spaceAfter=6, alignment=TA_CENTER)
+    head_style   = ParagraphStyle('H', fontName=F, fontSize=14, textColor=colors.HexColor('#1A237E'), spaceBefore=14, spaceAfter=6)
+    normal_style = ParagraphStyle('N', fontName=F, fontSize=10, leading=16, spaceAfter=4)
+    muted_style  = ParagraphStyle('M', fontName=F, fontSize=9,  textColor=colors.grey, spaceAfter=4)
+    score_label  = ParagraphStyle('SL', fontName=F, fontSize=10, leading=14)
+
+    story = []
+
+    # ── 表紙 ──
+    story.append(Spacer(1, 1.5 * cm))
+    story.append(Paragraph('土地造成リスク診断レポート', title_style))
+    story.append(Paragraph('ライトプラン', ParagraphStyle('S', fontName=F, fontSize=12, textColor=colors.HexColor('#FF6F00'), alignment=TA_CENTER, spaceAfter=20)))
+    cover_data = [
+        ['受付番号', f'#{order.get("id", 0):04d}'],
+        ['診断日時', order.get('created_at', '—')],
+        ['依頼者名', order.get('requester_name', '—')],
+        ['対象住所', order.get('address', '—')],
+        ['利用用途', order.get('land_use', '—')],
+    ]
+    cover_table = Table(cover_data, colWidths=[4 * cm, 12 * cm])
+    cover_table.setStyle([
+        ('FONTNAME',    (0, 0), (-1, -1), F),
+        ('FONTSIZE',    (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR',   (0, 0), (0, -1), colors.grey),
+        ('FONTNAME',    (1, 0), (1, -1), F),
+        ('GRID',        (0, 0), (-1, -1), 0.5, colors.HexColor('#E0E0E0')),
+        ('BACKGROUND',  (0, 0), (0, -1), colors.HexColor('#F4F6FB')),
+        ('PADDING',     (0, 0), (-1, -1), 8),
+    ])
+    story.append(cover_table)
+    story.append(Spacer(1, 1 * cm))
+
+    # ── 総合ランク ──
+    rank_data = [[
+        Paragraph(f'総合リスクランク', ParagraphStyle('RL', fontName=F, fontSize=11, textColor=colors.grey)),
+        Paragraph(rank, ParagraphStyle('RV', fontName=F, fontSize=48, textColor=rank_color, alignment=TA_CENTER)),
+        Paragraph(f'{rank_label}　{total_score}点 / 100点', ParagraphStyle('RD', fontName=F, fontSize=13, textColor=rank_color)),
+    ]]
+    rank_table = Table(rank_data, colWidths=[5 * cm, 3 * cm, 8 * cm])
+    rank_table.setStyle([
+        ('FONTNAME',   (0, 0), (-1, -1), F),
+        ('VALIGN',     (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8F9FF')),
+        ('BOX',        (0, 0), (-1, -1), 1.5, rank_color),
+        ('PADDING',    (0, 0), (-1, -1), 12),
+    ])
+    story.append(rank_table)
+    story.append(Spacer(1, 0.8 * cm))
+
+    # ── 5項目スコア ──
+    story.append(Paragraph('■ 5項目スコア', head_style))
+    score_items = [
+        ('地形・標高', order.get('score_terrain', 0), 20),
+        ('地盤リスク', order.get('score_soil', 0), 20),
+        ('災害リスク', order.get('score_disaster', 0), 20),
+        ('法規制',     order.get('score_regulation', 0), 20),
+        ('造成コスト', order.get('score_cost', 0), 20),
+    ]
+    for label, score, max_score in score_items:
+        pct     = score / max_score if max_score else 0
+        bar_w   = 10 * cm * pct
+        bar_color = colors.HexColor('#2E7D32') if pct >= 0.7 else (colors.HexColor('#E65100') if pct >= 0.4 else colors.HexColor('#B71C1C'))
+        row = [[
+            Paragraph(label, score_label),
+            Paragraph(f'{score}/{max_score}点', ParagraphStyle('SC', fontName=F, fontSize=10, alignment=TA_RIGHT)),
+        ]]
+        row_t = Table(row, colWidths=[8 * cm, 8 * cm])
+        row_t.setStyle([('FONTNAME', (0,0),(-1,-1), F), ('PADDING', (0,0),(-1,-1), 2)])
+        story.append(row_t)
+        bar_data = [['']]
+        bar_t    = Table(bar_data, colWidths=[bar_w + 0.01 * cm], rowHeights=[0.4 * cm])
+        bar_t.setStyle([('BACKGROUND', (0,0),(-1,-1), bar_color), ('PADDING', (0,0),(-1,-1), 0)])
+        bg_data  = [[bar_t, '']]
+        bg_t     = Table(bg_data, colWidths=[bar_w + 0.01 * cm, (10 * cm - bar_w)], rowHeights=[0.4 * cm])
+        bg_t.setStyle([
+            ('BACKGROUND', (1,0),(1,0), colors.HexColor('#E0E0E0')),
+            ('PADDING',    (0,0),(-1,-1), 0),
+            ('LEFTPADDING',(0,0),(0,0), 0),
+        ])
+        story.append(bg_t)
+        story.append(Spacer(1, 0.2 * cm))
+
+    # ── 基本リスク情報 ──
+    story.append(Spacer(1, 0.5 * cm))
+    story.append(Paragraph('■ 基本リスク情報', head_style))
+    risk_data = [
+        ['項目', '数値', '評価'],
+        ['標高',       f'{order.get("elevation","—")} m',      '—'],
+        ['周辺標高差', f'{order.get("elevation_diff","—")} m', '急傾斜注意' if (order.get('elevation_diff') or 0) > 5 else '問題なし'],
+        ['地盤増幅率', str(order.get('soil_amplification', '—')), '要注意' if (order.get('soil_amplification') or 0) > 1.5 else '標準'],
+        ['想定浸水深', f'{order.get("flood_depth","—")} m',   '浸水リスクあり' if (order.get('flood_depth') or 0) > 0 else 'リスクなし'],
+        ['土砂災害',   '有' if order.get('landslide_risk', 0) else '無', '要注意' if order.get('landslide_risk', 0) else '問題なし'],
+    ]
+    risk_table = Table(risk_data, colWidths=[5 * cm, 5 * cm, 6 * cm])
+    risk_table.setStyle([
+        ('FONTNAME',   (0,0),(-1,-1), F),
+        ('FONTSIZE',   (0,0),(-1,-1), 10),
+        ('BACKGROUND', (0,0),(-1,0), colors.HexColor('#1A237E')),
+        ('TEXTCOLOR',  (0,0),(-1,0), colors.white),
+        ('GRID',       (0,0),(-1,-1), 0.5, colors.HexColor('#E0E0E0')),
+        ('ROWBACKGROUNDS', (0,1),(-1,-1), [colors.white, colors.HexColor('#F4F6FB')]),
+        ('PADDING',    (0,0),(-1,-1), 8),
+    ])
+    story.append(risk_table)
+
+    # ── 免責事項 ──
+    story.append(Spacer(1, 1 * cm))
+    story.append(Paragraph('【免責事項】', ParagraphStyle('DH', fontName=F, fontSize=9, textColor=colors.grey)))
+    story.append(Paragraph(
+        '本レポートは公開データに基づく机上評価です。現地調査・地質調査の代替ではありません。'
+        '土地取得・開発の最終判断には専門家への相談を推奨します。',
+        ParagraphStyle('D', fontName=F, fontSize=8, textColor=colors.grey, leading=12)
+    ))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
 def build_pdf(order: dict) -> bytes:
     register_japanese_font()
     F   = FONT_NAME
@@ -1280,6 +1434,11 @@ def submit_form():
     except (ValueError, TypeError):
         return jsonify({'error': '敷地面積には数値を入力してください'}), 400
 
+    plan_key  = data.get('plan', 'standard')
+    if plan_key not in PLANS:
+        plan_key = 'standard'
+    plan_info = PLANS[plan_key]
+
     try:
         checkout = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -1287,10 +1446,10 @@ def submit_form():
                 'price_data': {
                     'currency': 'jpy',
                     'product_data': {
-                        'name': '土地造成リスク診断レポート',
+                        'name': f'土地造成リスク診断レポート【{plan_info["name"]}】',
                         'description': f'対象地: {data["address"]}',
                     },
-                    'unit_amount': PRICE_JPY,
+                    'unit_amount': plan_info['price'],
                 },
                 'quantity': 1,
             }],
@@ -1305,6 +1464,7 @@ def submit_form():
                 'address':        data['address'].strip(),
                 'land_use':       data['land_use'].strip(),
                 'site_area':      str(site_area),
+                'plan':           plan_key,
             }
         )
         return jsonify({'checkout_url': checkout.url})
@@ -1364,6 +1524,10 @@ def payment_success():
             'hazard':  {'flood_depth': flood_depth, 'landslide': landslide},
         }
 
+        plan_key = meta.get('plan', 'standard')
+        if plan_key not in PLANS:
+            plan_key = 'standard'
+
         with get_db() as db:
             cur = db.execute('''
                 INSERT INTO orders (
@@ -1375,8 +1539,8 @@ def payment_success():
                     score_terrain, score_soil, score_disaster,
                     score_regulation, score_cost,
                     grading_cost_per_sqm, soil_improvement_cost_per_sqm,
-                    total_cost_per_sqm, site_area, api_data
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    total_cost_per_sqm, site_area, api_data, plan
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ''', (
                 meta.get('requester_name'), meta.get('email'),
                 address, land_use, 'paid', sid,
@@ -1390,7 +1554,8 @@ def payment_success():
                 assessment['soil_improvement_cost_per_sqm'],
                 assessment['total_cost_per_sqm'],
                 site_area,
-                json.dumps(api_data, ensure_ascii=False)
+                json.dumps(api_data, ensure_ascii=False),
+                plan_key,
             ))
             db.commit()
             order_id = cur.lastrowid
@@ -1473,6 +1638,23 @@ def send_admin_notification(subject: str, html_body: str) -> bool:
         return False
 
 
+def send_line_notify(message: str) -> bool:
+    """LINE Notifyでメッセージを送信する"""
+    if not LINE_NOTIFY_TOKEN:
+        return False
+    try:
+        requests.post(
+            'https://notify-api.line.me/api/notify',
+            headers={'Authorization': f'Bearer {LINE_NOTIFY_TOKEN}'},
+            data={'message': message},
+            timeout=10,
+        )
+        return True
+    except Exception as e:
+        print(f'[LINE通知] 送信失敗: {e}')
+        return False
+
+
 def notify_admin_new_order(order: dict) -> bool:
     """有料注文が入ったとき管理者へ通知"""
     admin_url = 'https://land-risk-app.onrender.com/admin'
@@ -1497,6 +1679,16 @@ def notify_admin_new_order(order: dict) -> bool:
     </div>
   </div>
 </div>"""
+    plan_name = PLANS.get(order.get('plan', 'standard'), PLANS['standard'])['name']
+    price = PLANS.get(order.get('plan', 'standard'), PLANS['standard'])['price']
+    send_line_notify(
+        f'\n💳 新規有料注文\n'
+        f'受付番号: #{str(order.get("id","")).zfill(4)}\n'
+        f'プラン: {plan_name} (¥{price:,})\n'
+        f'依頼者: {order.get("requester_name","—")}\n'
+        f'住所: {order.get("address","—")}\n'
+        f'管理画面: https://land-risk-app.onrender.com/admin'
+    )
     return send_admin_notification('【新規注文】土地造成リスク診断 有料レポート申込み', html)
 
 
@@ -1527,6 +1719,13 @@ def notify_admin_free_check(check_id: int, address: str, rank: str, email: str) 
     </div>
   </div>
 </div>"""
+    send_line_notify(
+        f'\n🆓 無料診断\n'
+        f'診断番号: #{str(check_id).zfill(4)}\n'
+        f'住所: {address}\n'
+        f'ランク: {rank}（{rank_labels.get(rank,"—")}）\n'
+        f'メール: {"あり" if email else "なし"}'
+    )
     return send_admin_notification('【無料診断】土地造成リスク診断 新規利用', html)
 
 
@@ -1790,7 +1989,7 @@ def admin_approve(order_id):
 
     order = dict(row)
     try:
-        pdf_bytes    = build_pdf(order)
+        pdf_bytes    = build_lite_pdf(order) if order.get('plan') == 'lite' else build_pdf(order)
         pdf_filename = (f'report_{order_id:04d}_'
                         f'{datetime.now().strftime("%Y%m%d%H%M%S")}.pdf')
         pdf_path = os.path.join(REPORTS_DIR, pdf_filename)
@@ -1841,7 +2040,7 @@ def admin_download(order_id):
                          download_name=f'report_{order_id:04d}.pdf',
                          mimetype='application/pdf')
 
-    pdf_bytes = build_pdf(order)
+    pdf_bytes = build_lite_pdf(order) if order.get('plan') == 'lite' else build_pdf(order)
     return send_file(
         io.BytesIO(pdf_bytes), as_attachment=True,
         download_name=f'report_{order_id:04d}.pdf',

@@ -96,10 +96,11 @@
       padding: 5px 14px; border-radius: 20px;
     }
     @media (max-width: 600px) {
-      .header-inner { padding: 0; }
+      .header-inner { padding: 0 12px; }
       .brand { font-size: 13px; letter-spacing: 0; }
       .brand span { display: none; }
       .header-price { display: none; }
+      .header-contact-link { display: none; }
     }
 
     /* ── ヒーロー ── */
@@ -461,7 +462,7 @@
       <span>AI×公開データで土地リスクを可視化</span>
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
-      <a href="/contact"
+      <a href="/contact" class="header-contact-link"
          style="color:rgba(255,255,255,.85);text-decoration:none;font-size:13px;
                 font-weight:600;padding:6px 14px;border-radius:20px;
                 transition:background .2s;white-space:nowrap;"

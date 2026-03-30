@@ -63,6 +63,16 @@
       color: #fff; font-size: 13px; font-weight: 700;
       padding: 6px 18px; border-radius: 20px;
       box-shadow: 0 2px 8px rgba(255,111,0,.4);
+      white-space: nowrap;
+    }
+    .header-contact-link { white-space: nowrap; }
+
+    @media(max-width: 600px) {
+      .header-inner { padding: 0 14px; }
+      .brand { font-size: 13px; }
+      .brand span { display: none; }
+      .header-contact-link { display: none; }
+      .header-free-badge { font-size: 12px; padding: 5px 12px; }
     }
 
     /* ── ヒーロー（コンパクト）── */
@@ -209,7 +219,7 @@
       <span>AI×公開データで土地リスクを可視化</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <a href="/contact"
+      <a href="/contact" class="header-contact-link"
          style="color:rgba(255,255,255,.85);text-decoration:none;font-size:13px;
                 font-weight:600;padding:6px 14px;border-radius:20px;
                 transition:background .2s;"

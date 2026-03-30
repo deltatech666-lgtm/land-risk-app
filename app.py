@@ -58,8 +58,8 @@ FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@example.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 ADMIN_EMAIL    = os.environ.get('ADMIN_EMAIL', '')
 
-# LINE Notify
-LINE_NOTIFY_TOKEN = os.environ.get('LINE_NOTIFY_TOKEN', '')
+# Discord Webhook
+DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
 
 # Plans
 PLANS = {
@@ -1638,20 +1638,24 @@ def send_admin_notification(subject: str, html_body: str) -> bool:
         return False
 
 
-def send_line_notify(message: str) -> bool:
-    """LINE Notifyでメッセージを送信する"""
-    if not LINE_NOTIFY_TOKEN:
+def send_discord_notify(content: str, color: int = 0x1A237E, title: str = '', fields: list = None) -> bool:
+    """Discord Webhookで通知を送信する"""
+    if not DISCORD_WEBHOOK_URL:
         return False
     try:
+        embed = {'description': content, 'color': color}
+        if title:
+            embed['title'] = title
+        if fields:
+            embed['fields'] = fields
         requests.post(
-            'https://notify-api.line.me/api/notify',
-            headers={'Authorization': f'Bearer {LINE_NOTIFY_TOKEN}'},
-            data={'message': message},
+            DISCORD_WEBHOOK_URL,
+            json={'embeds': [embed]},
             timeout=10,
         )
         return True
     except Exception as e:
-        print(f'[LINE通知] 送信失敗: {e}')
+        print(f'[Discord通知] 送信失敗: {e}')
         return False
 
 
@@ -1680,14 +1684,18 @@ def notify_admin_new_order(order: dict) -> bool:
   </div>
 </div>"""
     plan_name = PLANS.get(order.get('plan', 'standard'), PLANS['standard'])['name']
-    price = PLANS.get(order.get('plan', 'standard'), PLANS['standard'])['price']
-    send_line_notify(
-        f'\n💳 新規有料注文\n'
-        f'受付番号: #{str(order.get("id","")).zfill(4)}\n'
-        f'プラン: {plan_name} (¥{price:,})\n'
-        f'依頼者: {order.get("requester_name","—")}\n'
-        f'住所: {order.get("address","—")}\n'
-        f'管理画面: https://land-risk-app.onrender.com/admin'
+    price     = PLANS.get(order.get('plan', 'standard'), PLANS['standard'])['price']
+    send_discord_notify(
+        title  = '💳 新規有料注文が入りました',
+        color  = 0x1B5E20,
+        fields = [
+            {'name': '受付番号', 'value': f'#{str(order.get("id","")).zfill(4)}', 'inline': True},
+            {'name': 'プラン',   'value': f'{plan_name} (¥{price:,})',            'inline': True},
+            {'name': '依頼者',   'value': order.get('requester_name', '—'),       'inline': True},
+            {'name': '住所',     'value': order.get('address', '—'),              'inline': False},
+            {'name': '管理画面', 'value': 'https://land-risk-app.onrender.com/admin', 'inline': False},
+        ],
+        content=''
     )
     return send_admin_notification('【新規注文】土地造成リスク診断 有料レポート申込み', html)
 
@@ -1719,12 +1727,16 @@ def notify_admin_free_check(check_id: int, address: str, rank: str, email: str) 
     </div>
   </div>
 </div>"""
-    send_line_notify(
-        f'\n🆓 無料診断\n'
-        f'診断番号: #{str(check_id).zfill(4)}\n'
-        f'住所: {address}\n'
-        f'ランク: {rank}（{rank_labels.get(rank,"—")}）\n'
-        f'メール: {"あり" if email else "なし"}'
+    send_discord_notify(
+        title  = '🆓 無料診断が実施されました',
+        color  = 0xE65100,
+        fields = [
+            {'name': '診断番号', 'value': f'#{str(check_id).zfill(4)}',              'inline': True},
+            {'name': 'ランク',   'value': f'{rank}（{rank_labels.get(rank,"—")}）',  'inline': True},
+            {'name': 'メール',   'value': 'あり' if email else 'なし',               'inline': True},
+            {'name': '住所',     'value': address,                                    'inline': False},
+        ],
+        content=''
     )
     return send_admin_notification('【無料診断】土地造成リスク診断 新規利用', html)
 

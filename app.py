@@ -1840,7 +1840,42 @@ def admin_csv_free_checks():
 
 
 # ============================================================
-# 12. Entry Point
+# 12. Sitemap & robots.txt
+# ============================================================
+@app.route('/sitemap.xml')
+def sitemap():
+    base = 'https://land-risk-app.onrender.com'
+    pages = [
+        ('/', '1.0', 'weekly'),
+        ('/free-check', '0.8', 'weekly'),
+        ('/privacy', '0.3', 'monthly'),
+        ('/tokutei', '0.3', 'monthly'),
+    ]
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for path, priority, changefreq in pages:
+        xml += f'''  <url>
+    <loc>{base}{path}</loc>
+    <priority>{priority}</priority>
+    <changefreq>{changefreq}</changefreq>
+  </url>\n'''
+    xml += '</urlset>'
+    return app.response_class(xml, mimetype='application/xml')
+
+
+@app.route('/robots.txt')
+def robots():
+    txt = ('User-agent: *\n'
+           'Allow: /\n'
+           'Disallow: /admin\n'
+           'Disallow: /free-result\n'
+           'Disallow: /success\n'
+           f'Sitemap: https://land-risk-app.onrender.com/sitemap.xml\n')
+    return app.response_class(txt, mimetype='text/plain')
+
+
+# ============================================================
+# 13. Entry Point
 # ============================================================
 if __name__ == '__main__':
     init_db()

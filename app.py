@@ -794,9 +794,24 @@ def build_lite_pdf(order: dict) -> bytes:
     # ============================================================
     # PAGE 1：表紙 ＋ 総合評価
     # ============================================================
-    story.append(Spacer(1, 0.8 * cm))
-    story.append(Paragraph('土地造成リスク診断レポート', s_title))
-    story.append(Paragraph('ライトプラン', s_sub))
+    # タイトルブロック（テーブルで縦積みして重なりを防ぐ）
+    title_tbl = Table([
+        [Paragraph('土地造成リスク診断レポート',
+                   S('LT2', fontSize=22, textColor=colors.HexColor('#1A237E'),
+                     alignment=TA_CENTER, leading=28))],
+        [Paragraph('ライトプラン',
+                   S('LS2', fontSize=14, textColor=colors.HexColor('#FF6F00'),
+                     alignment=TA_CENTER, leading=20))],
+    ], colWidths=[16 * cm], rowHeights=[1.2 * cm, 0.8 * cm])
+    title_tbl.setStyle([
+        ('FONTNAME',    (0,0),(-1,-1), F),
+        ('VALIGN',      (0,0),(-1,-1), 'MIDDLE'),
+        ('TOPPADDING',  (0,0),(-1,-1), 4),
+        ('BOTTOMPADDING',(0,0),(-1,-1), 4),
+    ])
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(title_tbl)
+    story.append(Spacer(1, 0.4 * cm))
 
     # 依頼者情報テーブル
     order_id = order.get('id', 0) or 0

@@ -349,6 +349,20 @@
       {% endif %}
     </div>
 
+    <!-- 用途地域（無料で表示） -->
+    <div class="score-row">
+      <div class="score-row-label">
+        <span class="cat-icon">🏙</span> 用途地域
+      </div>
+      {% if check.zoning_type %}
+        <span class="status-badge" style="background:#EDE7F6;color:#4527A0;font-size:11px;padding:4px 10px;">
+          {{ check.zoning_type }}
+        </span>
+      {% else %}
+        <span class="status-badge" style="background:#F5F5F5;color:#9E9E9E;">データなし</span>
+      {% endif %}
+    </div>
+
   </div><!-- /score-card -->
 
   <!-- ━━ ロック済み詳細エリア ━━ -->
@@ -371,6 +385,14 @@
         <div class="locked-dummy-row">
           <span>土砂災害リスク区域</span>
           <span><span class="locked-dummy-bar" style="width:45px;"></span></span>
+        </div>
+        <div class="locked-dummy-row">
+          <span>建蔽率・容積率（参考値）</span>
+          <span><span class="locked-dummy-bar" style="width:55px;"></span> %</span>
+        </div>
+        <div class="locked-dummy-row">
+          <span>最大建築面積・延床面積</span>
+          <span><span class="locked-dummy-bar" style="width:65px;"></span> ㎡</span>
         </div>
         <div class="locked-dummy-row">
           <span>造成費概算（100㎡）</span>
@@ -400,8 +422,9 @@
       <div class="cta-feature"><span class="ck">✅</span>標高差・地形の詳細数値</div>
       <div class="cta-feature"><span class="ck">✅</span>地盤増幅率・液状化リスク</div>
       <div class="cta-feature"><span class="ck">✅</span>浸水深・土砂災害区域の詳細</div>
+      <div class="cta-feature"><span class="ck">✅</span>用途地域・建築規制（建蔽率・容積率）</div>
+      <div class="cta-feature"><span class="ck">✅</span>最大建築面積・延床面積の試算</div>
       <div class="cta-feature"><span class="ck">✅</span>造成費概算（面積別試算表）</div>
-      <div class="cta-feature"><span class="ck">✅</span>法規制チェックリスト</div>
       <div class="cta-feature"><span class="ck">✅</span>5項目レーダーチャート</div>
       <div class="cta-feature"><span class="ck">✅</span>専門家による推奨アクション</div>
       <div class="cta-feature"><span class="ck">✅</span>PDFメール納品（1〜2営業日）</div>

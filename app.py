@@ -169,10 +169,16 @@ def init_db():
                 score_regulation    INTEGER,
                 score_cost          INTEGER,
                 converted_to_paid   INTEGER DEFAULT 0,
-                followup_sent       INTEGER DEFAULT 0
+                followup_sent       INTEGER DEFAULT 0,
+                zoning_type         TEXT
             )
         ''')
         db.commit()
+        # free_checks へのマイグレーション
+        free_cols = [row[1] for row in db.execute('PRAGMA table_info(free_checks)').fetchall()]
+        if 'zoning_type' not in free_cols:
+            db.execute('ALTER TABLE free_checks ADD COLUMN zoning_type TEXT')
+            db.commit()
 
 
 # gunicorn（Render等）でも起動時にテーブルを作成する
@@ -2041,6 +2047,10 @@ def api_free_check():
 
         assessment = assess_risk(elevation_diff, soil_amp, flood_depth, landslide, land_use)
 
+        # 用途地域取得（無料診断でも表示）
+        zoning_info = get_zoning_info(lat, lon)
+        zoning_type = zoning_info.get('zoning_type')
+
         with get_db() as db:
             cur = db.execute('''
                 INSERT INTO free_checks (
@@ -2049,8 +2059,8 @@ def api_free_check():
                     soil_amplification, flood_depth, landslide_risk,
                     overall_rank, total_score,
                     score_terrain, score_soil, score_disaster,
-                    score_regulation, score_cost
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    score_regulation, score_cost, zoning_type
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ''', (
                 prefecture, city_address, address, land_use,
                 site_area if site_area > 0 else None,
@@ -2060,7 +2070,7 @@ def api_free_check():
                 assessment['overall_rank'], assessment['total_score'],
                 assessment['score_terrain'], assessment['score_soil'],
                 assessment['score_disaster'], assessment['score_regulation'],
-                assessment['score_cost']
+                assessment['score_cost'], zoning_type
             ))
             db.commit()
             check_id = cur.lastrowid

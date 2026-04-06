@@ -953,41 +953,52 @@ def build_lite_pdf(order: dict) -> bytes:
 
     story.append(Paragraph('■ 用途地域', s_h2))
     zoning_type = order.get('zoning_type')
-    kenpei      = order.get('kenpei_ratio')
-    yoseki      = order.get('yoseki_ratio')
     if zoning_type:
-        zinfo = ZONING_TABLE.get(zoning_type, {})
+        zinfo    = ZONING_TABLE.get(zoning_type, {})
         category = zinfo.get('category', '—')
-        api_str = order.get('api_data', '{}')
+        api_str  = order.get('api_data', '{}')
         try:
             is_est = json.loads(api_str).get('zoning', {}).get('estimated', False) if isinstance(api_str, str) else False
         except Exception:
             is_est = False
         note = '※OSMデータによる推定値' if is_est else '※OSMデータより取得'
 
+        # ライトプランは用途地域名・区分のみ表示
         z_data = [
             ['項目', '内容'],
-            ['用途地域',      zoning_type],
-            ['地域区分',      category],
-            ['建蔽率（参考）', f'{kenpei}%' if kenpei is not None else '—'],
-            ['容積率（参考）', f'{yoseki}%' if yoseki is not None else '—'],
+            ['用途地域', zoning_type],
+            ['地域区分', category],
         ]
-        sa = order.get('site_area', 0) or 0
-        if sa > 0 and kenpei and yoseki:
-            z_data += [
-                ['最大建築面積（参考）', f'{sa * kenpei / 100:.1f}㎡'],
-                ['最大延床面積（参考）', f'{sa * yoseki / 100:.1f}㎡'],
-            ]
         z_tbl = Table(z_data, colWidths=[6*cm, 10*cm])
         z_tbl.setStyle(tbl_style_base())
         story.append(z_tbl)
-        story.append(Paragraph(
-            f'{note}。建蔽率・容積率は条例や地区計画により異なります。必ず自治体窓口にてご確認ください。',
-            s_muted))
+        story.append(Paragraph(f'{note}。', s_muted))
+
         if zoning_type == '市街化調整区域':
             story.append(Paragraph(
                 '⚠ 市街化調整区域は原則として建築・開発が制限されます。専門家への相談を強くお勧めします。',
                 S('WRN', fontSize=10, textColor=colors.HexColor('#B71C1C'), leading=15)))
+
+        # 建蔽率・容積率・建築面積はスタンダード限定としてロック表示
+        story.append(Spacer(1, 0.3*cm))
+        lock_data = [[
+            Paragraph('🔒  建蔽率・容積率・最大建築面積・延床面積の詳細数値',
+                      ParagraphStyle('LK', fontName=F, fontSize=10,
+                                     textColor=colors.HexColor('#5C6BC0'))),
+            Paragraph('スタンダードプランで確認できます',
+                      ParagraphStyle('LV', fontName=F, fontSize=9,
+                                     textColor=colors.HexColor('#5C6BC0'),
+                                     alignment=TA_RIGHT)),
+        ]]
+        lock_tbl = Table(lock_data, colWidths=[10*cm, 6*cm])
+        lock_tbl.setStyle([
+            ('FONTNAME',   (0,0),(-1,-1), F),
+            ('BACKGROUND', (0,0),(-1,-1), colors.HexColor('#E8EAF6')),
+            ('BOX',        (0,0),(-1,-1), 1, colors.HexColor('#9FA8DA')),
+            ('PADDING',    (0,0),(-1,-1), 10),
+            ('VALIGN',     (0,0),(-1,-1), 'MIDDLE'),
+        ])
+        story.append(lock_tbl)
     else:
         story.append(Paragraph(
             '用途地域データを取得できませんでした。自治体の都市計画課にてご確認ください。', s_body))

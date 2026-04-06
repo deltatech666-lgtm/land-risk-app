@@ -132,6 +132,16 @@ def init_db():
         if 'plan' not in existing_cols:
             db.execute("ALTER TABLE orders ADD COLUMN plan TEXT DEFAULT 'standard'")
             db.commit()
+        for col, typedef in [
+            ('zoning_type',       'TEXT'),
+            ('kenpei_ratio',      'INTEGER'),
+            ('yoseki_ratio',      'INTEGER'),
+            ('max_building_area', 'REAL'),
+            ('max_floor_area',    'REAL'),
+        ]:
+            if col not in existing_cols:
+                db.execute(f'ALTER TABLE orders ADD COLUMN {col} {typedef}')
+                db.commit()
 
         # 無料簡易診断テーブル
         db.execute('''
@@ -455,6 +465,88 @@ def get_rank(total_score: int) -> str:
         if low <= total_score <= high:
             return rank
     return 'D'
+
+
+# 用途地域ごとの標準的な建蔽率・容積率（参考値）
+ZONING_TABLE = {
+    '第一種低層住居専用地域':   {'kenpei': 50, 'yoseki': 100, 'category': '低層住居系'},
+    '第二種低層住居専用地域':   {'kenpei': 60, 'yoseki': 150, 'category': '低層住居系'},
+    '第一種中高層住居専用地域': {'kenpei': 60, 'yoseki': 200, 'category': '中高層住居系'},
+    '第二種中高層住居専用地域': {'kenpei': 60, 'yoseki': 200, 'category': '中高層住居系'},
+    '第一種住居地域':           {'kenpei': 60, 'yoseki': 200, 'category': '住居系'},
+    '第二種住居地域':           {'kenpei': 60, 'yoseki': 200, 'category': '住居系'},
+    '準住居地域':               {'kenpei': 60, 'yoseki': 200, 'category': '住居系'},
+    '近隣商業地域':             {'kenpei': 80, 'yoseki': 300, 'category': '商業系'},
+    '商業地域':                 {'kenpei': 80, 'yoseki': 400, 'category': '商業系'},
+    '準工業地域':               {'kenpei': 60, 'yoseki': 200, 'category': '工業系'},
+    '工業地域':                 {'kenpei': 60, 'yoseki': 200, 'category': '工業系'},
+    '工業専用地域':             {'kenpei': 60, 'yoseki': 200, 'category': '工業系'},
+    '市街化調整区域':           {'kenpei':  0, 'yoseki':   0, 'category': '調整区域'},
+}
+
+
+def get_zoning_info(lat: float, lon: float) -> dict:
+    """OSM Overpass APIから用途地域情報を取得"""
+    if lat is None or lon is None:
+        return {}
+    try:
+        query = f"""
+[out:json][timeout:15];
+(
+  way["zone:urban_planning"](around:300,{lat},{lon});
+  relation["zone:urban_planning"](around:300,{lat},{lon});
+  way["landuse"](around:150,{lat},{lon});
+  relation["landuse"](around:150,{lat},{lon});
+);
+out tags;
+"""
+        resp = requests.post(
+            'https://overpass-api.de/api/interpreter',
+            data={'data': query}, timeout=15
+        )
+        data = resp.json()
+        for element in data.get('elements', []):
+            tags = element.get('tags', {})
+            zone = tags.get('zone:urban_planning', '')
+            if zone and zone in ZONING_TABLE:
+                return {'zoning_type': zone}
+            # OSM landuse → 大分類で代替
+            landuse = tags.get('landuse', '')
+            landuse_map = {
+                'residential': '第一種住居地域',
+                'commercial':  '近隣商業地域',
+                'retail':      '商業地域',
+                'industrial':  '準工業地域',
+            }
+            if landuse in landuse_map:
+                return {'zoning_type': landuse_map[landuse], 'estimated': True}
+        return {}
+    except Exception as e:
+        print(f'[用途地域] 取得失敗: {e}')
+        return {}
+
+
+def calc_building_potential(zoning_type: str, site_area: float) -> dict:
+    """用途地域と敷地面積から建築ポテンシャルを計算"""
+    if not zoning_type or not site_area or site_area <= 0:
+        return {}
+    info = ZONING_TABLE.get(zoning_type)
+    if not info:
+        return {'zoning_type': zoning_type}
+    kenpei = info['kenpei']
+    yoseki = info['yoseki']
+    max_building_area = round(site_area * kenpei / 100, 1)
+    max_floor_area    = round(site_area * yoseki / 100, 1)
+    est_floors        = round(max_floor_area / max_building_area) if max_building_area > 0 else 0
+    return {
+        'zoning_type':       zoning_type,
+        'category':          info['category'],
+        'kenpei_ratio':      kenpei,
+        'yoseki_ratio':      yoseki,
+        'max_building_area': max_building_area,
+        'max_floor_area':    max_floor_area,
+        'est_floors':        est_floors,
+    }
 
 
 def assess_risk(elevation_diff: float, amplification: float,
@@ -1069,6 +1161,58 @@ def build_pdf(order: dict) -> bytes:
     story.append(tbl)
     story.append(Spacer(1, 0.4 * cm))
 
+    # 用途地域・建築ポテンシャル
+    zoning_type = order.get('zoning_type')
+    kenpei      = order.get('kenpei_ratio')
+    yoseki      = order.get('yoseki_ratio')
+    max_build   = order.get('max_building_area')
+    max_floor   = order.get('max_floor_area')
+
+    story.append(Paragraph('■ 用途地域・建築規制', s_h2))
+    if zoning_type:
+        zoning_info_row = ZONING_TABLE.get(zoning_type, {})
+        category = zoning_info_row.get('category', '―')
+        # OSM推定かどうか（api_dataから）
+        api_data_str = order.get('api_data', '{}')
+        try:
+            api_extra = json.loads(api_data_str) if isinstance(api_data_str, str) else api_data_str
+            is_estimated = api_extra.get('zoning', {}).get('estimated', False)
+        except Exception:
+            is_estimated = False
+        note = '※OSMデータによる推定値' if is_estimated else '※OSMデータより取得'
+
+        zoning_rows = [
+            ['項目', '内容'],
+            ['用途地域', zoning_type],
+            ['地域区分', category],
+            ['建蔽率（参考値）', f'{kenpei}%' if kenpei is not None else '―'],
+            ['容積率（参考値）', f'{yoseki}%' if yoseki is not None else '―'],
+        ]
+        if max_build and order.get('site_area'):
+            sa = order.get('site_area', 0)
+            est_floors = round(max_floor / max_build) if max_build > 0 else 0
+            zoning_rows += [
+                ['最大建築面積（参考）', f'{max_build:,.1f}㎡（敷地 {sa:,.0f}㎡ × 建蔽率）'],
+                ['最大延床面積（参考）', f'{max_floor:,.1f}㎡（敷地 × 容積率）'],
+                ['想定最大階数（参考）', f'約 {est_floors} 階建て相当'],
+            ]
+        tbl = Table(zoning_rows, colWidths=[5 * cm, 12 * cm])
+        tbl.setStyle(score_table_style())
+        story.append(tbl)
+        story.append(Paragraph(
+            f'<font size="9" color="grey">{note}。建蔽率・容積率は条例や地区計画により異なる場合があります。'
+            f'必ず自治体窓口にてご確認ください。</font>', s_body))
+        if zoning_type == '市街化調整区域':
+            story.append(Paragraph(
+                '⚠ 市街化調整区域は原則として建築・開発が制限されます。'
+                '開発許可なしには建築物を建てることができません。専門家への相談を強くお勧めします。',
+                ParagraphStyle('warn', parent=s_body, textColor=colors.HexColor('#B71C1C'))))
+    else:
+        story.append(Paragraph(
+            '用途地域データを取得できませんでした。自治体の都市計画課またはe-GOV・REINFOLIB等でご確認ください。',
+            s_body))
+    story.append(Spacer(1, 0.4 * cm))
+
     story.append(Paragraph('■ 法規制スコア', s_h2))
     story.append(Paragraph(
         f'利用用途「{use}」における法規制複雑度スコア：'
@@ -1522,10 +1666,16 @@ def payment_success():
         assessment = assess_risk(elevation_diff, soil_amp, flood_depth,
                                  landslide, land_use)
 
+        # 用途地域・建築ポテンシャル取得
+        zoning_info    = get_zoning_info(lat, lon)
+        zoning_type    = zoning_info.get('zoning_type')
+        building_pot   = calc_building_potential(zoning_type, site_area) if zoning_type else {}
+
         api_data = {
             'geocode': geo,
             'jshis':   {'amplification': soil_amp},
             'hazard':  {'flood_depth': flood_depth, 'landslide': landslide},
+            'zoning':  {**zoning_info, **building_pot},
         }
 
         plan_key = meta.get('plan', 'standard')
@@ -1543,8 +1693,10 @@ def payment_success():
                     score_terrain, score_soil, score_disaster,
                     score_regulation, score_cost,
                     grading_cost_per_sqm, soil_improvement_cost_per_sqm,
-                    total_cost_per_sqm, site_area, api_data, plan
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    total_cost_per_sqm, site_area, api_data, plan,
+                    zoning_type, kenpei_ratio, yoseki_ratio,
+                    max_building_area, max_floor_area
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ''', (
                 meta.get('requester_name'), meta.get('email'),
                 address, land_use, 'paid', sid,
@@ -1560,6 +1712,11 @@ def payment_success():
                 site_area,
                 json.dumps(api_data, ensure_ascii=False),
                 plan_key,
+                building_pot.get('zoning_type'),
+                building_pot.get('kenpei_ratio'),
+                building_pot.get('yoseki_ratio'),
+                building_pot.get('max_building_area'),
+                building_pot.get('max_floor_area'),
             ))
             db.commit()
             order_id = cur.lastrowid

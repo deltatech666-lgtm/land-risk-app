@@ -741,134 +741,332 @@ def build_lite_pdf(order: dict) -> bytes:
         buf, pagesize=A4,
         rightMargin=2 * cm, leftMargin=2 * cm,
         topMargin=2 * cm, bottomMargin=2 * cm,
+        title='土地造成リスク診断レポート（ライトプラン）'
     )
 
-    rank        = order.get('overall_rank', '—')
-    total_score = order.get('total_score', 0)
+    rank        = order.get('overall_rank', 'C') or 'C'
+    total_score = order.get('total_score', 0) or 0
     rank_labels = {'A': '優良', 'B': '良好', 'C': '要注意', 'D': '高リスク'}
-    rank_colors = {
-        'A': colors.HexColor('#1B5E20'),
-        'B': colors.HexColor('#1565C0'),
-        'C': colors.HexColor('#E65100'),
-        'D': colors.HexColor('#B71C1C'),
+    rank_descs  = {
+        'A': '造成適性が高く、リスクは低水準です。',
+        'B': '一部対策で造成可能な水準です。',
+        'C': '専門的検討と対策が必要な水準です。',
+        'D': '慎重な判断と専門家相談を強く推奨します。',
     }
+    rank_color_hex = {'A': '#1B5E20', 'B': '#1565C0', 'C': '#E65100', 'D': '#B71C1C'}
+    rank_bg_hex    = {'A': '#E8F5E9', 'B': '#E3F2FD', 'C': '#FFF3E0', 'D': '#FFEBEE'}
     rank_label = rank_labels.get(rank, '—')
-    rank_color = rank_colors.get(rank, colors.grey)
+    rank_desc  = rank_descs.get(rank, '')
+    rank_color = colors.HexColor(rank_color_hex.get(rank, '#757575'))
+    rank_bg    = colors.HexColor(rank_bg_hex.get(rank, '#F5F5F5'))
 
-    styles = getSampleStyleSheet()
-    title_style  = ParagraphStyle('T', fontName=F, fontSize=20, textColor=colors.HexColor('#1A237E'), spaceAfter=6, alignment=TA_CENTER)
-    head_style   = ParagraphStyle('H', fontName=F, fontSize=14, textColor=colors.HexColor('#1A237E'), spaceBefore=14, spaceAfter=6)
-    normal_style = ParagraphStyle('N', fontName=F, fontSize=10, leading=16, spaceAfter=4)
-    muted_style  = ParagraphStyle('M', fontName=F, fontSize=9,  textColor=colors.grey, spaceAfter=4)
-    score_label  = ParagraphStyle('SL', fontName=F, fontSize=10, leading=14)
+    # ── スタイル定義 ──
+    def S(name, **kw):
+        return ParagraphStyle(name, fontName=F, **kw)
+
+    s_title  = S('LT', fontSize=22, textColor=colors.HexColor('#1A237E'),
+                 alignment=TA_CENTER, spaceAfter=4)
+    s_sub    = S('LS', fontSize=13, textColor=colors.HexColor('#FF6F00'),
+                 alignment=TA_CENTER, spaceAfter=16)
+    s_h2     = S('LH2', fontSize=13, textColor=colors.HexColor('#1A237E'),
+                 spaceBefore=14, spaceAfter=6)
+    s_body   = S('LB', fontSize=10, leading=16, spaceAfter=4)
+    s_muted  = S('LM', fontSize=8,  textColor=colors.grey, leading=12, spaceAfter=4)
+    s_center = S('LC', fontSize=10, alignment=TA_CENTER)
+
+    def tbl_style_base():
+        return [
+            ('FONTNAME',   (0,0), (-1,-1), F),
+            ('FONTSIZE',   (0,0), (-1,-1), 10),
+            ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor('#E0E0E0')),
+            ('PADDING',    (0,0), (-1,-1), 8),
+            ('BACKGROUND', (0,0), (-1, 0), colors.HexColor('#1A237E')),
+            ('TEXTCOLOR',  (0,0), (-1, 0), colors.white),
+            ('ROWBACKGROUNDS', (0,1),(-1,-1), [colors.white, colors.HexColor('#F4F6FB')]),
+        ]
+
+    def section_line(story):
+        story.append(HRFlowable(width='100%', thickness=1.5,
+                                color=colors.HexColor('#1A237E'), spaceAfter=4))
 
     story = []
 
-    # ── 表紙 ──
-    story.append(Spacer(1, 1.5 * cm))
-    story.append(Paragraph('土地造成リスク診断レポート', title_style))
-    story.append(Paragraph('ライトプラン', ParagraphStyle('S', fontName=F, fontSize=12, textColor=colors.HexColor('#FF6F00'), alignment=TA_CENTER, spaceAfter=20)))
+    # ============================================================
+    # PAGE 1：表紙 ＋ 総合評価
+    # ============================================================
+    story.append(Spacer(1, 0.8 * cm))
+    story.append(Paragraph('土地造成リスク診断レポート', s_title))
+    story.append(Paragraph('ライトプラン', s_sub))
+
+    # 依頼者情報テーブル
+    order_id = order.get('id', 0) or 0
     cover_data = [
-        ['受付番号', f'#{order.get("id", 0):04d}'],
+        ['受付番号', f'#{order_id:04d}'],
         ['診断日時', order.get('created_at', '—')],
         ['依頼者名', order.get('requester_name', '—')],
         ['対象住所', order.get('address', '—')],
         ['利用用途', order.get('land_use', '—')],
     ]
-    cover_table = Table(cover_data, colWidths=[4 * cm, 12 * cm])
-    cover_table.setStyle([
-        ('FONTNAME',    (0, 0), (-1, -1), F),
-        ('FONTSIZE',    (0, 0), (-1, -1), 10),
-        ('TEXTCOLOR',   (0, 0), (0, -1), colors.grey),
-        ('FONTNAME',    (1, 0), (1, -1), F),
-        ('GRID',        (0, 0), (-1, -1), 0.5, colors.HexColor('#E0E0E0')),
-        ('BACKGROUND',  (0, 0), (0, -1), colors.HexColor('#F4F6FB')),
-        ('PADDING',     (0, 0), (-1, -1), 8),
-    ])
-    story.append(cover_table)
-    story.append(Spacer(1, 1 * cm))
-
-    # ── 総合ランク ──
-    rank_data = [[
-        Paragraph(f'総合リスクランク', ParagraphStyle('RL', fontName=F, fontSize=11, textColor=colors.grey)),
-        Paragraph(rank, ParagraphStyle('RV', fontName=F, fontSize=48, textColor=rank_color, alignment=TA_CENTER)),
-        Paragraph(f'{rank_label}　{total_score}点 / 100点', ParagraphStyle('RD', fontName=F, fontSize=13, textColor=rank_color)),
-    ]]
-    rank_table = Table(rank_data, colWidths=[5 * cm, 3 * cm, 8 * cm])
-    rank_table.setStyle([
-        ('FONTNAME',   (0, 0), (-1, -1), F),
-        ('VALIGN',     (0, 0), (-1, -1), 'MIDDLE'),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8F9FF')),
-        ('BOX',        (0, 0), (-1, -1), 1.5, rank_color),
-        ('PADDING',    (0, 0), (-1, -1), 12),
-    ])
-    story.append(rank_table)
-    story.append(Spacer(1, 0.8 * cm))
-
-    # ── 5項目スコア ──
-    story.append(Paragraph('■ 5項目スコア', head_style))
-    score_items = [
-        ('地形・標高', order.get('score_terrain', 0), 20),
-        ('地盤リスク', order.get('score_soil', 0), 20),
-        ('災害リスク', order.get('score_disaster', 0), 20),
-        ('法規制',     order.get('score_regulation', 0), 20),
-        ('造成コスト', order.get('score_cost', 0), 20),
-    ]
-    for label, score, max_score in score_items:
-        pct     = score / max_score if max_score else 0
-        bar_w   = 10 * cm * pct
-        bar_color = colors.HexColor('#2E7D32') if pct >= 0.7 else (colors.HexColor('#E65100') if pct >= 0.4 else colors.HexColor('#B71C1C'))
-        row = [[
-            Paragraph(label, score_label),
-            Paragraph(f'{score}/{max_score}点', ParagraphStyle('SC', fontName=F, fontSize=10, alignment=TA_RIGHT)),
-        ]]
-        row_t = Table(row, colWidths=[8 * cm, 8 * cm])
-        row_t.setStyle([('FONTNAME', (0,0),(-1,-1), F), ('PADDING', (0,0),(-1,-1), 2)])
-        story.append(row_t)
-        bar_data = [['']]
-        bar_t    = Table(bar_data, colWidths=[bar_w + 0.01 * cm], rowHeights=[0.4 * cm])
-        bar_t.setStyle([('BACKGROUND', (0,0),(-1,-1), bar_color), ('PADDING', (0,0),(-1,-1), 0)])
-        bg_data  = [[bar_t, '']]
-        bg_t     = Table(bg_data, colWidths=[bar_w + 0.01 * cm, (10 * cm - bar_w)], rowHeights=[0.4 * cm])
-        bg_t.setStyle([
-            ('BACKGROUND', (1,0),(1,0), colors.HexColor('#E0E0E0')),
-            ('PADDING',    (0,0),(-1,-1), 0),
-            ('LEFTPADDING',(0,0),(0,0), 0),
-        ])
-        story.append(bg_t)
-        story.append(Spacer(1, 0.2 * cm))
-
-    # ── 基本リスク情報 ──
-    story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph('■ 基本リスク情報', head_style))
-    risk_data = [
-        ['項目', '数値', '評価'],
-        ['標高',       f'{order.get("elevation","—")} m',      '—'],
-        ['周辺標高差', f'{order.get("elevation_diff","—")} m', '急傾斜注意' if (order.get('elevation_diff') or 0) > 5 else '問題なし'],
-        ['地盤増幅率', str(order.get('soil_amplification', '—')), '要注意' if (order.get('soil_amplification') or 0) > 1.5 else '標準'],
-        ['想定浸水深', f'{order.get("flood_depth","—")} m',   '浸水リスクあり' if (order.get('flood_depth') or 0) > 0 else 'リスクなし'],
-        ['土砂災害',   '有' if order.get('landslide_risk', 0) else '無', '要注意' if order.get('landslide_risk', 0) else '問題なし'],
-    ]
-    risk_table = Table(risk_data, colWidths=[5 * cm, 5 * cm, 6 * cm])
-    risk_table.setStyle([
+    cover_tbl = Table(cover_data, colWidths=[4 * cm, 12 * cm])
+    cover_tbl.setStyle([
         ('FONTNAME',   (0,0),(-1,-1), F),
         ('FONTSIZE',   (0,0),(-1,-1), 10),
-        ('BACKGROUND', (0,0),(-1,0), colors.HexColor('#1A237E')),
-        ('TEXTCOLOR',  (0,0),(-1,0), colors.white),
+        ('TEXTCOLOR',  (0,0),(0,-1),  colors.grey),
         ('GRID',       (0,0),(-1,-1), 0.5, colors.HexColor('#E0E0E0')),
-        ('ROWBACKGROUNDS', (0,1),(-1,-1), [colors.white, colors.HexColor('#F4F6FB')]),
+        ('BACKGROUND', (0,0),(0,-1),  colors.HexColor('#F4F6FB')),
         ('PADDING',    (0,0),(-1,-1), 8),
     ])
-    story.append(risk_table)
+    story.append(cover_tbl)
+    story.append(Spacer(1, 0.8 * cm))
 
-    # ── 免責事項 ──
-    story.append(Spacer(1, 1 * cm))
-    story.append(Paragraph('【免責事項】', ParagraphStyle('DH', fontName=F, fontSize=9, textColor=colors.grey)))
-    story.append(Paragraph(
-        '本レポートは公開データに基づく机上評価です。現地調査・地質調査の代替ではありません。'
-        '土地取得・開発の最終判断には専門家への相談を推奨します。',
-        ParagraphStyle('D', fontName=F, fontSize=8, textColor=colors.grey, leading=12)
-    ))
+    # 総合ランク表示（縦レイアウト）
+    rank_box_data = [
+        [Paragraph('総合リスクランク', S('RL', fontSize=11, textColor=colors.grey, alignment=TA_CENTER))],
+        [Paragraph(rank, S('RV', fontSize=64, textColor=rank_color, alignment=TA_CENTER, leading=72))],
+        [Paragraph(f'{rank_label}　{total_score}点 / 100点',
+                   S('RD', fontSize=14, textColor=rank_color, alignment=TA_CENTER, spaceAfter=4))],
+        [Paragraph(rank_desc, S('RE', fontSize=10, textColor=rank_color,
+                                alignment=TA_CENTER, leading=15))],
+    ]
+    rank_tbl = Table(rank_box_data, colWidths=[16 * cm])
+    rank_tbl.setStyle([
+        ('FONTNAME',   (0,0),(-1,-1), F),
+        ('VALIGN',     (0,0),(-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0),(-1,-1), rank_bg),
+        ('BOX',        (0,0),(-1,-1), 2, rank_color),
+        ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+        ('PADDING',    (0,0),(-1,-1), 10),
+        ('TOPPADDING', (1,0),(1,0),   14),
+        ('BOTTOMPADDING',(2,0),(3,0), 10),
+    ])
+    story.append(rank_tbl)
+    story.append(Spacer(1, 0.6 * cm))
+
+    # スコアサマリーテーブル
+    score_summary = [
+        ['評価項目', 'スコア', '満点', '評価'],
+        ['地形・造成難易度', str(order.get('score_terrain', 0)),    '20',
+         '良好' if (order.get('score_terrain',0) or 0)>=14 else ('要注意' if (order.get('score_terrain',0) or 0)>=8 else '高リスク')],
+        ['地盤リスク',       str(order.get('score_soil', 0)),       '20',
+         '良好' if (order.get('score_soil',0) or 0)>=14     else ('要注意' if (order.get('score_soil',0) or 0)>=8 else '高リスク')],
+        ['災害リスク',       str(order.get('score_disaster', 0)),   '20',
+         '良好' if (order.get('score_disaster',0) or 0)>=14 else ('要注意' if (order.get('score_disaster',0) or 0)>=8 else '高リスク')],
+        ['法規制',           str(order.get('score_regulation', 0)), '20',
+         '標準' if (order.get('score_regulation',0) or 0)>=14 else ('やや複雑' if (order.get('score_regulation',0) or 0)>=8 else '複雑')],
+        ['造成コスト',       str(order.get('score_cost', 0)),       '20',
+         '低コスト' if (order.get('score_cost',0) or 0)>=14  else ('標準' if (order.get('score_cost',0) or 0)>=8 else '高コスト')],
+        ['合　計',           str(total_score),                      '100', rank],
+    ]
+    sum_tbl = Table(score_summary, colWidths=[6*cm, 3*cm, 3*cm, 4*cm])
+    sum_tbl.setStyle(tbl_style_base() + [
+        ('FONTNAME',   (0,-1),(-1,-1), F),
+        ('TEXTCOLOR',  (0,-1),(-1,-1), rank_color),
+        ('BACKGROUND', (0,-1),(-1,-1), rank_bg),
+        ('ALIGN',      (1,0), (-1,-1), 'CENTER'),
+    ])
+    story.append(sum_tbl)
+    story.append(PageBreak())
+
+    # ============================================================
+    # PAGE 2：スコア詳細 ＋ 基本リスク情報
+    # ============================================================
+    section_line(story)
+    story.append(Paragraph('スコア詳細・基本リスク情報', s_h2))
+
+    story.append(Paragraph('■ 5項目スコア（バーグラフ）', s_h2))
+    score_items = [
+        ('地形・標高',  order.get('score_terrain', 0)    or 0, 20),
+        ('地盤リスク',  order.get('score_soil', 0)       or 0, 20),
+        ('災害リスク',  order.get('score_disaster', 0)   or 0, 20),
+        ('法規制',      order.get('score_regulation', 0) or 0, 20),
+        ('造成コスト',  order.get('score_cost', 0)       or 0, 20),
+    ]
+    BAR_TOTAL = 13 * cm
+    for label, sc, mx in score_items:
+        pct = sc / mx if mx else 0
+        bar_w = max(BAR_TOTAL * pct, 0.01 * cm)
+        rem_w = max(BAR_TOTAL - bar_w, 0.01 * cm)
+        bc = (colors.HexColor('#2E7D32') if pct >= 0.7
+              else colors.HexColor('#E65100') if pct >= 0.4
+              else colors.HexColor('#B71C1C'))
+        # ラベル行
+        lbl_tbl = Table([[
+            Paragraph(label, S('BL', fontSize=10, leading=14)),
+            Paragraph(f'{sc}/{mx}点', S('BR', fontSize=10, alignment=TA_RIGHT)),
+        ]], colWidths=[9*cm, 7*cm])
+        lbl_tbl.setStyle([('FONTNAME',(0,0),(-1,-1),F),('PADDING',(0,0),(-1,-1),2)])
+        story.append(lbl_tbl)
+        # バー
+        bar_inner = Table([['']], colWidths=[bar_w], rowHeights=[0.45*cm])
+        bar_inner.setStyle([('BACKGROUND',(0,0),(-1,-1),bc),('PADDING',(0,0),(-1,-1),0)])
+        bar_outer = Table([[bar_inner,'']], colWidths=[bar_w, rem_w], rowHeights=[0.45*cm])
+        bar_outer.setStyle([
+            ('BACKGROUND',(1,0),(1,0), colors.HexColor('#E0E0E0')),
+            ('PADDING',(0,0),(-1,-1),0),
+        ])
+        story.append(bar_outer)
+        story.append(Spacer(1, 0.3*cm))
+
+    story.append(Spacer(1, 0.5*cm))
+    story.append(Paragraph('■ 基本リスク情報', s_h2))
+    ed   = order.get('elevation_diff', 0) or 0
+    amp  = order.get('soil_amplification', 0) or 0
+    fd   = order.get('flood_depth', 0) or 0
+    ls   = order.get('landslide_risk', 0) or 0
+    risk_data = [
+        ['項目', '数値', '評価'],
+        ['標高',       f"{order.get('elevation','—')} m",   '—'],
+        ['周辺標高差', f'{ed:.1f} m',
+         '急傾斜注意' if ed > 5 else ('要注意' if ed > 3 else '問題なし')],
+        ['地盤増幅率（AVS30）', f'{amp:.2f}',
+         '要注意（軟弱地盤）' if amp > 1.5 else '標準'],
+        ['想定浸水深', f'{fd} m',
+         '浸水リスクあり' if fd > 0 else 'リスクなし'],
+        ['土砂災害リスク', '有' if ls else '無',
+         '要注意' if ls else '問題なし'],
+    ]
+    risk_tbl = Table(risk_data, colWidths=[5.5*cm, 4*cm, 6.5*cm])
+    risk_tbl.setStyle(tbl_style_base())
+    story.append(risk_tbl)
+    story.append(PageBreak())
+
+    # ============================================================
+    # PAGE 3：用途地域・法規制（簡易）
+    # ============================================================
+    section_line(story)
+    story.append(Paragraph('用途地域・法規制（簡易）', s_h2))
+
+    story.append(Paragraph('■ 用途地域', s_h2))
+    zoning_type = order.get('zoning_type')
+    kenpei      = order.get('kenpei_ratio')
+    yoseki      = order.get('yoseki_ratio')
+    if zoning_type:
+        zinfo = ZONING_TABLE.get(zoning_type, {})
+        category = zinfo.get('category', '—')
+        api_str = order.get('api_data', '{}')
+        try:
+            is_est = json.loads(api_str).get('zoning', {}).get('estimated', False) if isinstance(api_str, str) else False
+        except Exception:
+            is_est = False
+        note = '※OSMデータによる推定値' if is_est else '※OSMデータより取得'
+
+        z_data = [
+            ['項目', '内容'],
+            ['用途地域',      zoning_type],
+            ['地域区分',      category],
+            ['建蔽率（参考）', f'{kenpei}%' if kenpei is not None else '—'],
+            ['容積率（参考）', f'{yoseki}%' if yoseki is not None else '—'],
+        ]
+        sa = order.get('site_area', 0) or 0
+        if sa > 0 and kenpei and yoseki:
+            z_data += [
+                ['最大建築面積（参考）', f'{sa * kenpei / 100:.1f}㎡'],
+                ['最大延床面積（参考）', f'{sa * yoseki / 100:.1f}㎡'],
+            ]
+        z_tbl = Table(z_data, colWidths=[6*cm, 10*cm])
+        z_tbl.setStyle(tbl_style_base())
+        story.append(z_tbl)
+        story.append(Paragraph(
+            f'{note}。建蔽率・容積率は条例や地区計画により異なります。必ず自治体窓口にてご確認ください。',
+            s_muted))
+        if zoning_type == '市街化調整区域':
+            story.append(Paragraph(
+                '⚠ 市街化調整区域は原則として建築・開発が制限されます。専門家への相談を強くお勧めします。',
+                S('WRN', fontSize=10, textColor=colors.HexColor('#B71C1C'), leading=15)))
+    else:
+        story.append(Paragraph(
+            '用途地域データを取得できませんでした。自治体の都市計画課にてご確認ください。', s_body))
+
+    story.append(Spacer(1, 0.5*cm))
+    story.append(Paragraph('■ 関連法規の概要（主要）', s_h2))
+    use = order.get('land_use', '住宅')
+    law_data = [
+        ['法令・規制', '確認事項'],
+        ['都市計画法', '用途地域・1,000㎡以上は開発許可が必要'],
+        ['建築基準法', '建蔽率・容積率・建築物の構造基準'],
+        ['宅地造成等規制法', '宅地造成等規制区域の確認'],
+        ['農地法',  '農地の場合は転用許可が必要'],
+    ]
+    if use == '太陽光':
+        law_data.append(['FIT法・農林水産省指針', '農地等での太陽光設置は農業委員会届出'])
+    law_tbl = Table(law_data, colWidths=[6*cm, 10*cm])
+    law_tbl.setStyle(tbl_style_base())
+    story.append(law_tbl)
+    story.append(PageBreak())
+
+    # ============================================================
+    # PAGE 4：推奨アクション ＋ 免責 ＋ アップグレード案内
+    # ============================================================
+    section_line(story)
+    story.append(Paragraph('推奨アクション・免責事項', s_h2))
+
+    story.append(Paragraph('■ 優先推奨アクション', s_h2))
+    actions = []
+    if ed > 3:
+        actions.append(('高', '造成設計の専門家相談', '標高差が大きく、専門的な切盛土計画が必要です。'))
+    if amp > 1.5:
+        actions.append(('高', '地盤調査の実施',
+                        'スウェーデン式サウンディングまたはボーリング調査を実施し、地盤改良工法を決定してください。'))
+    if fd > 0:
+        actions.append(('中', '排水・防水計画の検討', '浸水リスクがあります。排水設備・防水工事の計画を推奨します。'))
+    if ls:
+        actions.append(('高', '土砂災害警戒区域の確認', '都道府県の指定区域を確認し、必要に応じて対策を講じてください。'))
+    actions.append(('中', '自治体窓口での用途地域・法規制確認',
+                    '都市計画課にて用途地域・開発許可要件・地区計画を確認してください。'))
+    actions.append(('低', '複数施工業者への見積依頼', '造成・地盤改良について3社以上から見積を取得し比較検討してください。'))
+
+    pri_colors = {'高': colors.HexColor('#FFEBEE'), '中': colors.HexColor('#FFF3E0'), '低': colors.HexColor('#E8F5E9')}
+    pri_text   = {'高': colors.HexColor('#B71C1C'), '中': colors.HexColor('#E65100'), '低': colors.HexColor('#2E7D32')}
+    for pri, title_txt, desc in actions:
+        act_data = [[
+            Paragraph(f'【優先度：{pri}】 {title_txt}',
+                      ParagraphStyle('AT', fontName=F, fontSize=10, textColor=pri_text[pri])),
+            Paragraph(desc, ParagraphStyle('AD', fontName=F, fontSize=9, leading=13,
+                                           textColor=colors.HexColor('#424242'))),
+        ]]
+        act_tbl = Table(act_data, colWidths=[5.5*cm, 10.5*cm])
+        act_tbl.setStyle([
+            ('FONTNAME',   (0,0),(-1,-1), F),
+            ('BACKGROUND', (0,0),(-1,-1), pri_colors[pri]),
+            ('BOX',        (0,0),(-1,-1), 0.5, pri_text[pri]),
+            ('PADDING',    (0,0),(-1,-1), 8),
+            ('VALIGN',     (0,0),(-1,-1), 'TOP'),
+        ])
+        story.append(act_tbl)
+        story.append(Spacer(1, 0.2*cm))
+
+    # アップグレード案内
+    story.append(Spacer(1, 0.5*cm))
+    up_data = [[Paragraph(
+        '【スタンダードプランへのアップグレードで更に詳しく】\n'
+        '■ 造成費概算（面積別試算表）　■ 5項目レーダーチャート\n'
+        '■ 詳細な推奨アクション　■ 免責事項・データソース詳細\n'
+        '詳細レポートは ¥30,000（税込）でご提供しています。',
+        S('UP', fontSize=9, textColor=colors.HexColor('#1A237E'), leading=15))]]
+    up_tbl = Table(up_data, colWidths=[16*cm])
+    up_tbl.setStyle([
+        ('FONTNAME',   (0,0),(-1,-1), F),
+        ('BACKGROUND', (0,0),(-1,-1), colors.HexColor('#E8EAF6')),
+        ('BOX',        (0,0),(-1,-1), 1, colors.HexColor('#1A237E')),
+        ('PADDING',    (0,0),(-1,-1), 12),
+    ])
+    story.append(up_tbl)
+
+    # 免責事項
+    story.append(Spacer(1, 0.6*cm))
+    story.append(Paragraph('■ 免責事項', s_h2))
+    for txt in [
+        '【精度について】本レポートは現地調査を行っておらず、公開デジタルデータに基づく机上評価です。実際の地形・地質・法規制状況とは異なる場合があります。',
+        '【専門家調査の必要性】土地の取得・開発・建築に際しては、必ず専門家（建築士・地盤調査会社・測量士等）による詳細調査・確認を行ってください。',
+        '【法的効力】本レポートは建築確認申請・開発許可申請等の公的手続きに使用できる法的効力を有しません。',
+        '【賠償責任の制限】本レポートの情報に基づく判断・行動による損害について、当社は一切の責任を負いません。',
+    ]:
+        story.append(Paragraph(txt, s_muted))
+
+    # 発行日
+    today = datetime.now().strftime('%Y年%m月%d日')
+    story.append(Spacer(1, 0.4*cm))
+    story.append(Paragraph(f'発行日：{today}　　土地造成リスク診断サービス', s_muted))
 
     doc.build(story)
     return buf.getvalue()

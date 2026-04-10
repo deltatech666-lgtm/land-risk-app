@@ -916,8 +916,8 @@
       ('領収書・請求書は発行できますか？',
        'Stripeの決済完了メールが領収書としてご利用いただけます。法人向けの請求書が必要な場合はお問い合わせください。'),
     ] %}
-    <div style="border:1px solid #E0E0E0;border-radius:10px;margin-bottom:12px;overflow:hidden;">
-      <button onclick="this.parentElement.classList.toggle('faq-open')"
+    <div class="faq-item" style="border:1px solid #E0E0E0;border-radius:10px;margin-bottom:12px;overflow:hidden;">
+      <button onclick="toggleFaq(this)"
               style="width:100%;background:none;border:none;padding:18px 20px;
                      display:flex;justify-content:space-between;align-items:center;
                      font-size:15px;font-weight:700;color:#1A237E;cursor:pointer;
@@ -991,16 +991,13 @@
 
 <script>
   // ── FAQ アコーディオン ──
-  document.querySelectorAll('.faq-open .faq-body, [class*="faq"]').forEach(() => {});
-  document.addEventListener('click', (e) => {
-    const item = e.target.closest('[style*="border:1px solid #E0E0E0"]');
-    if (!item) return;
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
     const body = item.querySelector('.faq-body');
     const icon = item.querySelector('.faq-icon');
-    if (!body) return;
     const isOpen = item.classList.contains('faq-open');
     // 全て閉じる
-    document.querySelectorAll('.faq-open').forEach(el => {
+    document.querySelectorAll('.faq-item.faq-open').forEach(el => {
       el.classList.remove('faq-open');
       el.querySelector('.faq-body').style.maxHeight = '0';
       el.querySelector('.faq-icon').style.transform = 'rotate(0deg)';
@@ -1010,7 +1007,7 @@
       body.style.maxHeight = body.scrollHeight + 'px';
       icon.style.transform = 'rotate(45deg)';
     }
-  });
+  }
 
   // ── プラン選択 ──
   function selectPlan(key) {

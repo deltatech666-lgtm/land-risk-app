@@ -1564,20 +1564,22 @@ def build_pdf(order: dict) -> bytes:
     for priority, title, content in _get_recommended_actions(order):
         bg = {'高': '#FFEBEE', '中': '#FFF3E0', '低': '#E8F5E9'}[priority]
         tc = {'高': '#B71C1C', '中': '#E65100', '低': '#1B5E20'}[priority]
+        s_act_title = ParagraphStyle('ATtl', fontName=F, fontSize=10,
+                                     textColor=colors.HexColor(tc), leading=14)
+        s_act_body  = ParagraphStyle('ATbd', fontName=F, fontSize=9,
+                                     textColor=colors.HexColor('#333333'), leading=13,
+                                     wordWrap='CJK')
         action_tbl = Table(
-            [[f'【優先度：{priority}】 {title}'],
-             [content]],
+            [[Paragraph(f'【優先度：{priority}】 {title}', s_act_title)],
+             [Paragraph(content, s_act_body)]],
             colWidths=[17 * cm])
         action_tbl.setStyle(TableStyle([
-            ('FONTNAME',      (0, 0), (-1, -1), F),
-            ('FONTSIZE',      (0, 0), (0, 0),  10),
-            ('FONTSIZE',      (0, 1), (-1, -1), 9),
             ('BACKGROUND',    (0, 0), (-1,  0), colors.HexColor(bg)),
-            ('TEXTCOLOR',     (0, 0), (-1,  0), colors.HexColor(tc)),
             ('BOX',           (0, 0), (-1, -1), 1, colors.HexColor(tc)),
             ('TOPPADDING',    (0, 0), (-1, -1), 7),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
             ('LEFTPADDING',   (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 10),
         ]))
         story.append(action_tbl)
         story.append(Spacer(1, 0.25 * cm))
@@ -1620,12 +1622,28 @@ def build_pdf(order: dict) -> bytes:
 
     story.append(Spacer(1, 0.4 * cm))
     story.append(Paragraph('■ 使用データソース', s_h2))
+    _ds_h  = ParagraphStyle('DSH', fontName=F, fontSize=10,
+                             textColor=colors.white, wordWrap='CJK', leading=13)
+    _ds_b  = ParagraphStyle('DSB', fontName=F, fontSize=10,
+                             textColor=colors.HexColor('#212121'), wordWrap='CJK', leading=13)
+    _ds_url = ParagraphStyle('DSU', fontName=F, fontSize=8,
+                              textColor=colors.HexColor('#1565C0'), wordWrap='LTR', leading=11)
     tbl = Table([
-        ['データソース', 'URL', '利用内容'],
-        ['国土地理院', 'https://maps.gsi.go.jp/', '住所検索・標高データ'],
-        ['J-SHIS（防災科研）', 'https://www.j-shis.bosai.go.jp/', '地盤増幅率・地震ハザード'],
-        ['ハザードマップポータル（国交省）', 'https://disaportal.gsi.go.jp/', '洪水・土砂・津波リスク'],
-        ['国土数値情報（国交省）', 'https://nlftp.mlit.go.jp/', '用途地域・法規制情報'],
+        [Paragraph('データソース', _ds_h),
+         Paragraph('URL', _ds_h),
+         Paragraph('利用内容', _ds_h)],
+        [Paragraph('国土地理院', _ds_b),
+         Paragraph('https://maps.gsi.go.jp/', _ds_url),
+         Paragraph('住所検索・標高データ', _ds_b)],
+        [Paragraph('J-SHIS（防災科研）', _ds_b),
+         Paragraph('https://www.j-shis.bosai.go.jp/', _ds_url),
+         Paragraph('地盤増幅率・地震ハザード', _ds_b)],
+        [Paragraph('ハザードマップポータル\n（国交省）', _ds_b),
+         Paragraph('https://disaportal.gsi.go.jp/', _ds_url),
+         Paragraph('洪水・土砂・津波リスク', _ds_b)],
+        [Paragraph('国土数値情報（国交省）', _ds_b),
+         Paragraph('https://nlftp.mlit.go.jp/', _ds_url),
+         Paragraph('用途地域・法規制情報', _ds_b)],
     ], colWidths=[5 * cm, 7 * cm, 5 * cm])
     tbl.setStyle(score_table_style())
     story.append(tbl)

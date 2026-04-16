@@ -1693,7 +1693,7 @@ def build_pdf(order: dict) -> bytes:
 
     contact_tbl = Table([
         ['▶ 無料相談はこちら'],
-        ['　メール：deltatech666@gmail.com'],
+        ['　メール：info@delta-tec.jp'],
         ['　担当：関根 寛人（土木造成設計 専門家）'],
     ], colWidths=[17 * cm])
     contact_tbl.setStyle(TableStyle([
